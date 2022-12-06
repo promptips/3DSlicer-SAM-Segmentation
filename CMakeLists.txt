@@ -4,4 +4,6 @@ project(SegmentWithSAM)
 
 #-----------------------------------------------------------------------------
 # Extension meta-information
-set(EXTENSION_H
+set(EXTENSION_HOMEPAGE "https://github.com/mazurowski-lab/SlicerSegmentWithSAM")
+set(EXTENSION_CATEGORY "Segmentation")
+set(EXTENS
