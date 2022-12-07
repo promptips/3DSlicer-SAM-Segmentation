@@ -6,4 +6,5 @@ project(SegmentWithSAM)
 # Extension meta-information
 set(EXTENSION_HOMEPAGE "https://github.com/mazurowski-lab/SlicerSegmentWithSAM")
 set(EXTENSION_CATEGORY "Segmentation")
-set(EXTENS
+set(EXTENSION_CONTRIBUTORS "Zafer Yildiz (Mazurowski Lab, Duke University)")
+set(EXTENSION_DESCRIPTION "SegmentWithSAM aims 
