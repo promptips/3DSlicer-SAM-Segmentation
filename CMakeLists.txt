@@ -18,4 +18,8 @@ find_package(Slicer REQUIRED)
 include(${Slicer_USE_FILE})
 
 #-----------------------------------------------------------------------------
-# Extension m
+# Extension modules
+add_subdirectory(SegmentWithSAM)
+## NEXT_MODULE
+
+#-------------------------------------------------------------
