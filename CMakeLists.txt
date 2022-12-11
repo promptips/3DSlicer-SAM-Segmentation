@@ -12,4 +12,7 @@ set(EXTENSION_ICONURL "https://raw.githubusercontent.com/mazurowski-lab/SlicerSe
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/mazurowski-lab/SlicerSegmentWithSAM/main/Screenshots/sws1.png https://raw.githubusercontent.com/mazurowski-lab/SlicerSegmentWithSAM/main/Screenshots/sws2.png https://raw.githubusercontent.com/mazurowski-lab/SlicerSegmentWithSAM/main/Screenshots/sws3.png https://raw.githubusercontent.com/mazurowski-lab/SlicerSegmentWithSAM/main/Screenshots/sws4.png")
 set(EXTENSION_DEPENDS "PyTorch") # Specified as a list or "NA" if no dependencies
 
-#---------------------
+#-----------------------------------------------------------------------------
+# Extension dependencies
+find_package(Slicer REQUIRED)
+include(${Slic
