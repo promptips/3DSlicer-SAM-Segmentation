@@ -15,4 +15,7 @@ set(EXTENSION_DEPENDS "PyTorch") # Specified as a list or "NA" if no dependencie
 #-----------------------------------------------------------------------------
 # Extension dependencies
 find_package(Slicer REQUIRED)
-include(${Slic
+include(${Slicer_USE_FILE})
+
+#-----------------------------------------------------------------------------
+# Extension m
