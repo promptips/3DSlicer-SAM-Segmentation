@@ -6,4 +6,8 @@ set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
   )
 
-set(MODULE_PYTHON_RESOU
+set(MODULE_PYTHON_RESOURCES
+  Resources/Icons/${MODULE_NAME}.png
+  Resources/UI/${MODULE_NAME}.ui
+  )
+set(EXTENSION_HOMEPAGE "https://git
