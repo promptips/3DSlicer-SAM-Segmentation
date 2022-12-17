@@ -18,4 +18,8 @@ set(EXTENSION_ICONURL "https://raw.githubusercontent.com/mazurowski-lab/SlicerSe
 set(EXTENSION_SCREENSHOTURLS "https://raw.githubusercontent.com/mazurowski-lab/SlicerSegmentWithSAM/main/Screenshots/sws4.png")
 set(EXTENSION_DEPENDS "PyTorch") # Specified as a list or "NA" if no dependencies
 #-----------------------------------------------------------------------------
-slicer
+slicerMacroBuildScriptedModule(
+  NAME ${MODULE_NAME}
+  SCRIPTS ${MODULE_PYTHON_SCRIPTS}
+  RESOURCES ${MODULE_PYTHON_RESOURCES}
+  WIT
