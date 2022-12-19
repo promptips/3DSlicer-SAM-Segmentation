@@ -134,3 +134,84 @@
 						</widget>
 					</item>
 					<item>
+						<widget class="qSlicerSimpleMarkupsWidget" name="positivePrompts">
+							<property name="enterPlaceModeOnNodeChange">
+								<bool>false</bool>
+							</property>
+							
+							<property name="defaultNodeColor">
+								<color>
+									<red>0</red>
+									<green>255</green>
+									<blue>0</blue>
+								</color>
+							</property>
+						</widget>
+					</item>
+					<item>
+						<widget class="QLabel" name="label_3">
+							<property name="text">
+								<string>Add Negative Prompt Point</string>
+							</property>
+						</widget>
+					</item>
+					<item>
+						<widget class="qSlicerSimpleMarkupsWidget" name="negativePrompts">
+							<property name="enterPlaceModeOnNodeChange">
+								<bool>false</bool>
+							</property>
+							<property name="defaultNodeColor">
+								<color>
+									<red>255</red>
+									<green>0</green>
+									<blue>0</blue>
+								</color>
+							</property>
+						</widget>
+					</item>
+				</layout>
+			</item>
+		</layout>
+	</widget>
+	<customwidgets>
+		<customwidget>
+			<class>qMRMLWidget</class>
+			<extends>QWidget</extends>
+			<header>qMRMLWidget.h</header>
+			<container>1</container>
+		</customwidget>
+		<customwidget>
+			<class>qSlicerWidget</class>
+			<extends>QWidget</extends>
+			<header>qSlicerWidget.h</header>
+			<container>1</container>
+		</customwidget>
+		<customwidget>
+			<class>qSlicerSimpleMarkupsWidget</class>
+			<extends>qSlicerWidget</extends>
+			<header>qSlicerSimpleMarkupsWidget.h</header>
+		</customwidget>
+	</customwidgets>
+	<resources/>
+	<connections>
+		
+		<connection>
+			<sender>SegmentWithSAM</sender>
+			<signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+			<receiver>positivePrompts</receiver>
+			<slot>setMRMLScene(vtkMRMLScene*)</slot>
+		</connection>
+		<connection>
+			<sender>SegmentWithSAM</sender>
+			<signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+			<receiver>negativePrompts</receiver>
+			<slot>setMRMLScene(vtkMRMLScene*)</slot>
+		</connection>
+		
+	</connections>
+	<buttongroups>
+		<buttongroup name="buttonGroupWorkOn"/>
+		<buttongroup name="buttonGroupDataType"/>
+	</buttongroups>undefined
+	
+</ui>
