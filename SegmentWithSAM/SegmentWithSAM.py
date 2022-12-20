@@ -491,3 +491,123 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
     def propagateThroughAllSlices(self):
         with slicer.util.MessageDialog("Propagating through all slices..."):
             with slicer.util.WaitCursor():
+                self.createFrames()
+
+                sliceIndicesToPromptPointCoordinations, sliceIndicesToPromptPointLabels = self.getAllPromptPointsAndLabels()
+                
+                frame_names = [
+                    p for p in os.listdir(self.framesFolder)
+                    if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
+                ]
+                frame_names.sort(key=lambda p: int(os.path.splitext(p)[0]))
+                inference_state = self.videoPredictor.init_state(video_path=self.framesFolder)
+
+                for ann_frame_idx in sliceIndicesToPromptPointCoordinations.keys():
+                    _, out_obj_ids, out_mask_logits = self.videoPredictor.add_new_points(
+                        inference_state=inference_state,
+                        frame_idx=ann_frame_idx,
+                        obj_id=self._parameterNode.GetParameter("SAMCurrentSegment"),
+                        points=np.array(sliceIndicesToPromptPointCoordinations[ann_frame_idx], dtype=np.float32),
+                        labels=np.array(sliceIndicesToPromptPointLabels[ann_frame_idx], np.int32),
+                    )
+
+                video_segments = {}  # video_segments contains the per-frame segmentation results
+                for out_frame_idx, out_obj_ids, out_mask_logits in self.videoPredictor.propagate_in_video(inference_state):
+                    video_segments[out_frame_idx] = {
+                        out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                        for i, out_obj_id in enumerate(out_obj_ids)
+                    }
+
+                for out_frame_idx, out_obj_ids, out_mask_logits in self.videoPredictor.propagate_in_video(inference_state, reverse=True):
+                    video_segments[out_frame_idx] = {
+                        out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                        for i, out_obj_id in enumerate(out_obj_ids)
+                    }
+
+                plt.close("all")
+                # render the segmentation results every few frames
+                for out_frame_idx in range(len(frame_names)):
+                    for out_obj_id, out_mask in video_segments[out_frame_idx].items():
+                        orig_map=plt.cm.get_cmap('binary') 
+                        # reversing the original colormap using reversed() function 
+                        reversed_binary = orig_map.reversed() 
+                        plt.imsave(self.framesFolder + "/" + "0" * (5 - len(str(out_frame_idx))) + str(out_frame_idx) + "_mask.jpeg", out_mask[0], cmap=reversed_binary)
+
+                self.updateSlicesWithSegmentationMasks(0, self.nofSlices - 1)
+
+
+    def updateSlicesWithSegmentationMasks(self, start, end):
+        currentSegment = self._parameterNode.GetParameter("SAMCurrentSegment")
+
+        if currentSegment not in self.segmentIdToSegmentationMask:
+            self.segmentIdToSegmentationMask[currentSegment] = np.zeros(self.volumeShape)
+
+        for currentSliceIndex in range(start, end + 1):
+            mask = Image.open(self.framesFolder + "/" +  "0" * (5 - len(str(currentSliceIndex))) + str(currentSliceIndex) + "_mask.jpeg")  
+            mask = mask.convert('1')
+            mask = np.array(mask)
+
+            if self.sliceAccessorDimension == 2:
+                self.segmentIdToSegmentationMask[currentSegment][:, :, currentSliceIndex] = mask
+            elif self.sliceAccessorDimension == 1:
+                self.segmentIdToSegmentationMask[currentSegment][:, currentSliceIndex, :] = mask
+            else:
+                self.segmentIdToSegmentationMask[currentSegment][currentSliceIndex, :, :] = mask
+
+        slicer.util.updateSegmentBinaryLabelmapFromArray(
+            self.segmentIdToSegmentationMask[currentSegment],
+            self._parameterNode.GetNodeReference("SAMSegmentationNode"),
+            self._parameterNode.GetParameter("SAMCurrentSegment"),
+            self._parameterNode.GetNodeReference("InputVolume"),
+        )
+
+    def propagateToLeft(self):
+        with slicer.util.MessageDialog("Propagating to left..."):
+            with slicer.util.WaitCursor():
+                self.createFrames()
+                self.propagation(toLeft=True)
+                self.positivePromptPointsNode.RemoveAllControlPoints()
+                self.negativePromptPointsNode.RemoveAllControlPoints()
+
+
+    def propagateToRight(self):
+        with slicer.util.MessageDialog("Propagating to right..."):
+            with slicer.util.WaitCursor():
+                self.createFrames()
+                self.propagation(toLeft=False)
+
+                self.positivePromptPointsNode.RemoveAllControlPoints()
+                self.negativePromptPointsNode.RemoveAllControlPoints()
+
+    def changeModel(self, modelName):
+        self.modelName = modelName
+
+        if "SAM-2" in modelName:
+            if self.device.type == "cuda":
+                # use bfloat16 for the entire notebook
+                #torch.autocast("cuda", dtype=torch.bfloat16).__enter__()
+                # turn on tfloat32 for Ampere GPUs (https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices)
+                if torch.cuda.get_device_properties(0).major >= 8:
+                    torch.backends.cuda.matmul.allow_tf32 = True
+                    torch.backends.cudnn.allow_tf32 = True
+
+        if modelName == "SAM-2 Large":
+            sam2_checkpoint = self.checkpointFolder + "sam2_hiera_large.pt"
+            model_cfg = "sam2_hiera_l.yaml"
+            sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=self.device)
+            self.videoPredictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
+            self.sam = SAM2ImagePredictor(sam2_model)
+        
+        elif modelName == "SAM-2 Base Plus":
+            sam2_checkpoint = self.checkpointFolder + "sam2_hiera_base_plus.pt"
+            model_cfg = "sam2_hiera_b+.yaml"
+            sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=self.device)
+            self.videoPredictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
+            self.sam = SAM2ImagePredictor(sam2_model)
+        
+        elif modelName == "SAM-2 Small":
+            sam2_checkpoint = self.checkpointFolder + "sam2_hiera_small.pt"
+            model_cfg = "sam2_hiera_s.yaml"
+            sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=self.device)
+            self.videoPredictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
+            self.sam = SAM2ImagePredictor(sam2_model)
