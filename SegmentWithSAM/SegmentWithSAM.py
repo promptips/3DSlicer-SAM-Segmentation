@@ -377,3 +377,117 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         frame_names = [
             p for p in os.listdir(self.framesFolder)
             if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
+        ]
+        frame_names.sort(key=lambda p: int(os.path.splitext(p)[0]))
+        inference_state = self.videoPredictor.init_state(video_path=self.framesFolder)
+        self.videoPredictor.reset_state(inference_state)
+
+        sliceIndicesToPromptPointCoordinations, sliceIndicesToPromptPointLabels = self.getAllPromptPointsAndLabels()
+
+        ann_frame_idx =  self.getIndexOfCurrentSlice()  # the frame index we interact with
+        ann_obj_id = self._parameterNode.GetParameter("SAMCurrentSegment") 
+        # give a unique id to each object we interact with (it can be any integers)
+        
+        _, out_obj_ids, out_mask_logits = self.videoPredictor.add_new_points(
+            inference_state=inference_state,
+            frame_idx=ann_frame_idx,
+            obj_id=ann_obj_id,
+            points=np.array(sliceIndicesToPromptPointCoordinations[ann_frame_idx], dtype=np.float32),
+            labels=np.array(sliceIndicesToPromptPointLabels[ann_frame_idx], np.int32),
+        )
+        
+        video_segments = {}  # video_segments contains the per-frame segmentation results
+        for out_frame_idx, out_obj_ids, out_mask_logits in self.videoPredictor.propagate_in_video(inference_state, reverse=toLeft):
+            video_segments[out_frame_idx] = {
+                out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+                for i, out_obj_id in enumerate(out_obj_ids)
+            }
+
+        plt.close("all")
+        
+        if toLeft:
+            for out_frame_idx in range(0, self.getIndexOfCurrentSlice() + 1):
+                for out_obj_id, out_mask in video_segments[out_frame_idx].items():
+                    orig_map=plt.cm.get_cmap('binary') 
+                    # reversing the original colormap using reversed() function 
+                    reversed_binary = orig_map.reversed() 
+                    plt.imsave(self.framesFolder + "/" + "0" * (5 - len(str(out_frame_idx))) + str(out_frame_idx) + "_mask.jpeg", out_mask[0], cmap=reversed_binary)
+            
+            self.updateSlicesWithSegmentationMasks(0, self.getIndexOfCurrentSlice())
+        else:
+            for out_frame_idx in range(self.getIndexOfCurrentSlice(), self.nofSlices):
+                for out_obj_id, out_mask in video_segments[out_frame_idx].items():
+                    orig_map=plt.cm.get_cmap('binary') 
+                    # reversing the original colormap using reversed() function 
+                    reversed_binary = orig_map.reversed() 
+                    plt.imsave(self.framesFolder + "/" + "0" * (5 - len(str(out_frame_idx))) + str(out_frame_idx) + "_mask.jpeg", out_mask[0], cmap=reversed_binary)
+
+            self.updateSlicesWithSegmentationMasks(self.getIndexOfCurrentSlice(), self.nofSlices - 1)
+
+    def getAllPromptPointsAndLabels(self):
+        sliceIndicesToPromptPointCoordinations = {}
+        sliceIndicesToPromptPointLabels = {}
+
+        nofPositivePromptPoints = self.positivePromptPointsNode.GetNumberOfControlPoints()
+        for i in range(nofPositivePromptPoints):
+            if self.positivePromptPointsNode.GetNthControlPointVisibility(i):
+                pointRAS = [0, 0, 0]
+                self.positivePromptPointsNode.GetNthControlPointPositionWorld(i, pointRAS)
+                pointIJK = [0, 0, 0, 1]
+                self.volumeRasToIjk.MultiplyPoint(np.append(pointRAS, 1.0), pointIJK)
+                pointIJK = [int(round(c)) for c in pointIJK[0:3]]
+
+                if self.sliceAccessorDimension == 2:
+                    if pointIJK[0] not in sliceIndicesToPromptPointCoordinations.keys():
+                        sliceIndicesToPromptPointCoordinations[pointIJK[0]] = []
+                        sliceIndicesToPromptPointLabels[pointIJK[0]] = []
+                    sliceIndicesToPromptPointCoordinations[pointIJK[0]].append([pointIJK[1], pointIJK[2]])
+                    sliceIndicesToPromptPointLabels[pointIJK[0]].append(1)
+                elif self.sliceAccessorDimension == 1:
+                    if pointIJK[1] not in sliceIndicesToPromptPointCoordinations.keys():
+                        sliceIndicesToPromptPointCoordinations[pointIJK[1]] = []
+                        sliceIndicesToPromptPointLabels[pointIJK[1]] = []
+                    sliceIndicesToPromptPointCoordinations[pointIJK[1]].append([pointIJK[0], pointIJK[2]])
+                    sliceIndicesToPromptPointLabels[pointIJK[1]].append(1)
+
+                elif self.sliceAccessorDimension == 0:
+                    if pointIJK[2] not in sliceIndicesToPromptPointCoordinations.keys():
+                        sliceIndicesToPromptPointCoordinations[pointIJK[2]] = []
+                        sliceIndicesToPromptPointLabels[pointIJK[2]] = []
+                    sliceIndicesToPromptPointCoordinations[pointIJK[2]].append([pointIJK[0], pointIJK[1]])
+                    sliceIndicesToPromptPointLabels[pointIJK[2]].append(1)
+
+        nofNegativePromptPoints = self.negativePromptPointsNode.GetNumberOfControlPoints()
+        for i in range(nofNegativePromptPoints):
+            if self.negativePromptPointsNode.GetNthControlPointVisibility(i):
+                pointRAS = [0, 0, 0]
+                self.negativePromptPointsNode.GetNthControlPointPositionWorld(i, pointRAS)
+                pointIJK = [0, 0, 0, 1]
+                self.volumeRasToIjk.MultiplyPoint(np.append(pointRAS, 1.0), pointIJK)
+                pointIJK = [int(round(c)) for c in pointIJK[0:3]]
+
+                if self.sliceAccessorDimension == 2:
+                    if pointIJK[0] not in sliceIndicesToPromptPointCoordinations.keys():
+                        sliceIndicesToPromptPointCoordinations[pointIJK[0]] = []
+                        sliceIndicesToPromptPointLabels[pointIJK[0]] = []
+                    sliceIndicesToPromptPointCoordinations[pointIJK[0]].append([pointIJK[1], pointIJK[2]])
+                    sliceIndicesToPromptPointLabels[pointIJK[0]].append(0)
+                elif self.sliceAccessorDimension == 1:
+                    if pointIJK[1] not in sliceIndicesToPromptPointCoordinations.keys():
+                        sliceIndicesToPromptPointCoordinations[pointIJK[1]] = []
+                        sliceIndicesToPromptPointLabels[pointIJK[1]] = []
+                    sliceIndicesToPromptPointCoordinations[pointIJK[1]].append([pointIJK[0], pointIJK[2]])
+                    sliceIndicesToPromptPointLabels[pointIJK[1]].append(0)
+                elif self.sliceAccessorDimension == 0:
+                    if pointIJK[2] not in sliceIndicesToPromptPointCoordinations.keys():
+                        sliceIndicesToPromptPointCoordinations[pointIJK[2]] = []
+                        sliceIndicesToPromptPointLabels[pointIJK[2]] = []
+                    sliceIndicesToPromptPointCoordinations[pointIJK[2]].append([pointIJK[0], pointIJK[1]])
+                    sliceIndicesToPromptPointLabels[pointIJK[2]].append(0)
+
+        return sliceIndicesToPromptPointCoordinations, sliceIndicesToPromptPointLabels
+
+
+    def propagateThroughAllSlices(self):
+        with slicer.util.MessageDialog("Propagating through all slices..."):
+            with slicer.util.WaitCursor():
