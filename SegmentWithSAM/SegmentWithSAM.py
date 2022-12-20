@@ -275,3 +275,105 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         except ModuleNotFoundError:
             if slicer.util.confirmOkCancelDisplay(
                 "'hydra' is missing. Click OK to install it now!"
+            ): 
+                slicer.util.pip_install("hydra-core")
+        try: 
+            import hydra
+        except ModuleNotFoundError:
+            raise RuntimeError("There is a problem about the installation of 'hydra' package. Please try again to install!")
+
+
+        try:
+            import ninja
+        except ModuleNotFoundError:
+            if slicer.util.confirmOkCancelDisplay(
+                "'ninja' is missing. Click OK to install it now!"
+            ): 
+                slicer.util.pip_install("ninja")
+        try: 
+            import ninja
+        except ModuleNotFoundError:
+            raise RuntimeError("There is a problem about the installation of 'ninja' package. Please try again to install!")
+
+
+        try:
+            import matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            slicer.util.pip_install("matplotlib")
+        
+        try: 
+            import  matplotlib.pyplot as plt
+        except ModuleNotFoundError:
+            raise RuntimeError("There is a problem about the installation of 'matplotlib' package. Please try again to install!")
+
+        try:
+            import tqdm
+        except ModuleNotFoundError:
+            slicer.util.pip_install("tqdm")
+        try: 
+            import tqdm
+        except ModuleNotFoundError:
+            raise RuntimeError("There is a problem about the installation of 'tqdm' package. Please try again to install!")
+
+        try:
+            import cv2
+        except ModuleNotFoundError:
+            slicer.util.pip_install("opencv-python")
+
+        try: 
+            import cv2
+        except ModuleNotFoundError:
+            raise RuntimeError("There is a problem about the installation of 'open-cv' package. Please try again to install!")
+
+        try: 
+            from sam2.build_sam import build_sam2
+            from sam2.sam2_image_predictor import SAM2ImagePredictor
+            from sam2.build_sam import build_sam2_video_predictor
+            #from setup import setup as sam2setup
+        except ModuleNotFoundError:
+            raise RuntimeError("There is a problem about the installation of 'sam-2' package. Please try again to install!")
+        
+        
+        self.device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        print("Working on", self.device)
+
+        self.currentlySegmenting = False
+        self.featuresAreExtracted = False
+
+    def createFrames(self):
+        if not os.path.exists(self.framesFolder):
+            os.makedirs(self.framesFolder)
+
+        oldSliceFiles = glob.glob(self.framesFolder + "/*")
+        for filename in oldSliceFiles:
+            os.remove(filename)
+        self.initializeVariables()
+        self.initializeSegmentationProcess()
+
+        for sliceIndex in range(0, self.nofSlices):
+            sliceImage = self.getSliceBasedOnSliceAccessorDimension(sliceIndex)
+            plt.imsave(self.framesFolder + "/" + "0" * (5 - len(str(sliceIndex))) + str(sliceIndex) + ".jpeg", sliceImage, cmap="gray")
+
+
+    def show_mask(self, mask, ax, obj_id=None, random_color=False):
+        if random_color:
+            color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+        else:
+            cmap = plt.get_cmap("tab10")
+            cmap_idx = 0 if obj_id is None else obj_id
+            color = np.array([*cmap(cmap_idx)[:3], 0.6])
+        h, w = mask.shape[-2:]
+        mask_image = mask.reshape(h, w, 1) * color.reshape(1, 1, -1)
+        ax.imshow(mask_image)
+
+    def show_points(self, coords, labels, ax, marker_size=200):
+        pos_points = coords[labels==1]
+        neg_points = coords[labels==0]
+        ax.scatter(pos_points[:, 0], pos_points[:, 1], color='green', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)
+        ax.scatter(neg_points[:, 0], neg_points[:, 1], color='red', marker='*', s=marker_size, edgecolor='white', linewidth=1.25)   
+
+    def propagation(self, toLeft):
+
+        frame_names = [
+            p for p in os.listdir(self.framesFolder)
+            if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
