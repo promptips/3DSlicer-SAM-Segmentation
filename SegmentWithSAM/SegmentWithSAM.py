@@ -735,3 +735,124 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         Ensure parameter node exists and observed.
         """
         # Parameter node stores all user choices in parameter values, node selections, etc.
+        # so that when the scene is saved and reloaded, these settings are restored.
+        #         
+        self.setParameterNode(self.logic.getParameterNode())
+
+        if not self._parameterNode.GetNodeReferenceID("positivePromptPointsNode"):
+            newPromptPointNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "positive")
+            newPromptPointNode.GetDisplayNode().SetSelectedColor(0, 1, 0)
+            self._parameterNode.SetNodeReferenceID("positivePromptPointsNode", newPromptPointNode.GetID())
+
+        if not self._parameterNode.GetNodeReferenceID("negativePromptPointsNode"):
+            newPromptPointNode = slicer.mrmlScene.AddNewNodeByClass("vtkMRMLMarkupsFiducialNode", "negative")
+            newPromptPointNode.GetDisplayNode().SetSelectedColor(1, 0, 0)
+            self._parameterNode.SetNodeReferenceID("negativePromptPointsNode", newPromptPointNode.GetID())
+
+        self.ui.positivePrompts.setCurrentNode(self._parameterNode.GetNodeReference("positivePromptPointsNode"))
+        self.ui.negativePrompts.setCurrentNode(self._parameterNode.GetNodeReference("negativePromptPointsNode"))
+
+        if not self._parameterNode.GetNodeReferenceID("SAMSegmentationNode"):
+
+            self.samSegmentationNode = slicer.mrmlScene.AddNewNodeByClass('vtkMRMLSegmentationNode', 'SAM Segmentation')
+            self.samSegmentationNode.CreateDefaultDisplayNodes() 
+            self.firstSegmentId = self.samSegmentationNode.GetSegmentation().AddEmptySegment()
+            
+            self._parameterNode.SetNodeReferenceID("SAMSegmentationNode", self.samSegmentationNode.GetID())
+            self._parameterNode.SetParameter("SAMCurrentSegment", self.firstSegmentId)
+            self._parameterNode.SetParameter("SAMCurrentMask", "Mask-1")
+            self._parameterNode.SetParameter("SAMCurrentModel", "SAM")
+
+            self.ui.segmentationDropDown.addItem(self.samSegmentationNode.GetSegmentation().GetNthSegment(0).GetName())
+            for i in range(3):
+                self.ui.maskDropDown.addItem("Mask-" + str(i+1))
+
+            self.ui.modelDropDown.addItem("SAM-2 Tiny")
+            self.ui.modelDropDown.addItem("SAM-2 Small")
+            self.ui.modelDropDown.addItem("SAM-2 Base Plus")
+            self.ui.modelDropDown.addItem("SAM-2 Large")
+            
+            self.ui.modelDropDown.addItem("SAM (ViT-B)")
+            self.ui.modelDropDown.addItem("SAM (ViT-L)")
+            self.ui.modelDropDown.addItem("SAM (ViT-H)")
+            
+    def setParameterNode(self, inputParameterNode):
+        """
+        Set and observe parameter node.
+        Observation is needed because when the parameter node is changed then the GUI must be updated immediately.
+        """
+
+        if inputParameterNode:
+            self.logic.setDefaultParameters(inputParameterNode)
+
+        if self._parameterNode is not None and self.hasObserver(
+            self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode
+        ):
+            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+        self._parameterNode = inputParameterNode
+        if self._parameterNode is not None:
+            self.addObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+
+        self.updateGUIFromParameterNode()
+
+    def updateGUIFromParameterNode(self, caller=None, event=None):
+        """
+        This method is called whenever parameter node is changed.
+        The module GUI is updated to show the current state of the parameter node.
+        """
+
+        if self._parameterNode is None or self._updatingGUIFromParameterNode:
+            return
+
+        if not slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode"):
+            return
+
+        # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
+        self._updatingGUIFromParameterNode = True
+
+        if self._parameterNode.GetNodeReferenceID("SAMSegmentationNode"):
+            segmentationNode = self._parameterNode.GetNodeReference("SAMSegmentationNode")
+
+            self.ui.segmentationDropDown.clear()
+            for i in range(segmentationNode.GetSegmentation().GetNumberOfSegments()):
+                segmentName = segmentationNode.GetSegmentation().GetNthSegment(i).GetName()
+                self.ui.segmentationDropDown.addItem(segmentName)
+ 
+            if self._parameterNode.GetParameter("SAMCurrentSegment"):
+                self.ui.segmentationDropDown.setCurrentText(segmentationNode.GetSegmentation().GetSegment(self._parameterNode.GetParameter("SAMCurrentSegment")).GetName())
+            
+
+            if self._parameterNode.GetParameter("SAMCurrentMask"):
+                self.ui.maskDropDown.setCurrentText(self._parameterNode.GetParameter("SAMCurrentMask"))
+            
+            if self._parameterNode.GetParameter("SAMCurrentModel"):
+                self.ui.modelDropDown.setCurrentText(self._parameterNode.GetParameter("SAMCurrentModel"))
+
+        self._updatingGUIFromParameterNode = False
+
+    def updateParameterNodeFromGUI(self, caller=None, event=None):
+        """
+        This method is called when the user makes any change in the GUI.
+        The changes are saved into the parameter node (so that they are restored when the scene is saved and loaded).
+        """
+        if self._parameterNode is None or self._updatingGUIFromParameterNode:
+            return
+        if self._parameterNode.GetParameter("SAMCurrentModel") != self.ui.modelDropDown.currentText:
+            print(self._parameterNode.GetParameter("SAMCurrentModel"), "=>", self.ui.modelDropDown.currentText)
+            self.changeModel(self.ui.modelDropDown.currentText)
+            self._parameterNode.SetParameter("SAMCurrentModel", self.ui.modelDropDown.currentText)
+
+        if not self._parameterNode.GetNodeReference("SAMSegmentationNode") or not hasattr(self, 'volumeShape'):
+            return
+
+        wasModified = self._parameterNode.StartModify()  # Modify all properties in a single batch
+
+        segmentationNode = self._parameterNode.GetNodeReference("SAMSegmentationNode").GetSegmentation()
+        self._parameterNode.SetParameter("SAMCurrentSegment", segmentationNode.GetSegmentIdBySegmentName(self.ui.segmentationDropDown.currentText))
+        if self._parameterNode.GetParameter("SAMCurrentSegment") not in self.segmentIdToSegmentationMask:
+            self.segmentIdToSegmentationMask[self._parameterNode.GetParameter("SAMCurrentSegment")] = np.zeros(self.volumeShape)
+
+        self._parameterNode.SetParameter("SAMCurrentMask", self.ui.maskDropDown.currentText)
+        self._parameterNode.SetParameter("SAMCurrentModel", self.ui.modelDropDown.currentText)
+
+        self._parameterNode.EndModify(wasModified)
