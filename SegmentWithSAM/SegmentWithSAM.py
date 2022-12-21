@@ -611,3 +611,127 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=self.device)
             self.videoPredictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
             self.sam = SAM2ImagePredictor(sam2_model)
+
+        elif modelName == "SAM-2 Tiny":
+            sam2_checkpoint = self.checkpointFolder + "sam2_hiera_tiny.pt"
+            model_cfg = "sam2_hiera_t.yaml"
+            sam2_model = build_sam2(model_cfg, sam2_checkpoint, device=self.device)
+            self.videoPredictor = build_sam2_video_predictor(model_cfg, sam2_checkpoint, device=self.device)
+            self.sam = SAM2ImagePredictor(sam2_model)
+        
+        elif modelName == "SAM (ViT-B)":
+            self.modelVersion = "vit_b"
+            self.checkpointName = "sam_vit_b_01ec64.pth"
+            self.modelCheckpoint = self.checkpointFolder + self.checkpointName
+            model = sam_model_registry[self.modelVersion](checkpoint=self.modelCheckpoint)
+            model.to(device=self.device)
+            self.sam = SamPredictor(model)
+        
+        elif modelName == "SAM (ViT-L)":
+            self.modelVersion = "vit_l"
+            self.checkpointName = "sam_vit_l_0b3195.pth"
+            self.modelCheckpoint = self.checkpointFolder + self.checkpointName
+            model = sam_model_registry[self.modelVersion](checkpoint=self.modelCheckpoint)
+            model.to(device=self.device)
+            self.sam = SamPredictor(model)
+        
+        elif modelName == "SAM (ViT-H)":
+            self.modelVersion = "vit_h"
+            self.checkpointName = "sam_vit_h_4b8939.pth"
+            self.modelCheckpoint = self.checkpointFolder + self.checkpointName
+            model = sam_model_registry[self.modelVersion](checkpoint=self.modelCheckpoint)
+            model.to(device=self.device)
+            self.sam = SamPredictor(model)
+
+        self.currentlySegmenting = False
+        self.featuresAreExtracted = False
+
+    def reportProgress(self, msg, level=None):
+        # Print progress in the console
+        print("Loading... {0}%".format(self.sampleDataLogic.downloadPercent))
+        # Abort download if cancel is clicked in progress bar
+        if slicer.progressWindow.wasCanceled:
+            raise Exception("Download aborted")
+        # Update progress window
+        slicer.progressWindow.show()
+        slicer.progressWindow.activateWindow()
+        slicer.progressWindow.setValue(int(self.sampleDataLogic.downloadPercent))
+        slicer.progressWindow.setLabelText("Downloading SAM checkpoint...")
+        # Process events to allow screen to refresh
+        slicer.app.processEvents()
+
+    def setup(self):
+        """
+        Called when the user opens the module the first time and the widget is initialized.
+        """
+        ScriptedLoadableModuleWidget.setup(self)
+
+        uiWidget = slicer.util.loadUI(self.resourcePath("UI/SegmentWithSAM.ui"))
+        self.layout.addWidget(uiWidget)
+        self.ui = slicer.util.childWidgetVariables(uiWidget)
+        uiWidget.setMRMLScene(slicer.mrmlScene)
+        self.logic = SegmentWithSAMLogic()
+
+        # Connections
+        self.addObserver(slicer.mrmlScene, slicer.mrmlScene.StartCloseEvent, self.onSceneStartClose)
+        self.addObserver(slicer.mrmlScene, slicer.mrmlScene.EndCloseEvent, self.onSceneEndClose)
+        self.ui.positivePrompts.connect("markupsNodeChanged()", self.updateParameterNodeFromGUI)
+        self.ui.positivePrompts.markupsPlaceWidget().setPlaceModePersistency(True)
+        self.ui.negativePrompts.connect("markupsNodeChanged()", self.updateParameterNodeFromGUI)
+        self.ui.negativePrompts.markupsPlaceWidget().setPlaceModePersistency(True)
+
+        # Buttons
+        self.ui.goToSegmentEditorButton.connect("clicked(bool)", self.onGoToSegmentEditor)
+        self.ui.goToMarkupsButton.connect("clicked(bool)", self.onGoToMarkups)
+        self.ui.propagateToLeft.connect("clicked(bool)", self.propagateToLeft)
+        self.ui.propagateToRight.connect("clicked(bool)", self.propagateToRight)
+        self.ui.propagateThroughAllSlices.connect('clicked(bool)', self.propagateThroughAllSlices)
+        self.ui.segmentButton.connect("clicked(bool)", self.onStartSegmentation)
+        self.ui.stopSegmentButton.connect("clicked(bool)", self.onStopSegmentButton)
+        self.ui.segmentationDropDown.connect("currentIndexChanged(int)", self.updateParameterNodeFromGUI)
+        self.ui.maskDropDown.connect("currentIndexChanged(int)", self.updateParameterNodeFromGUI)
+        self.ui.modelDropDown.connect("currentIndexChanged(int)", self.updateParameterNodeFromGUI)
+
+        self.segmentIdToSegmentationMask = {}
+        self.initializeParameterNode()
+
+    def cleanup(self):
+        """
+        Called when the application closes and the module widget is destroyed.
+        """
+        self.removeObservers()
+
+    def enter(self):
+        """
+        Called each time the user opens this module.
+        """
+        # Make sure parameter node exists and observed
+        self.initializeParameterNode()
+
+    def exit(self):
+        """
+        Called each time the user opens a different module.
+        """
+        # Do not react to parameter node changes (GUI wlil be updated when the user enters into the module)
+        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+
+    def onSceneStartClose(self, caller, event):
+        """
+        Called just before the scene is closed.
+        """
+        # Parameter node will be reset, do not use it anymore
+        self.setParameterNode(None)
+
+    def onSceneEndClose(self, caller, event):
+        """
+        Called just after the scene is closed.
+        """
+        # If this module is shown while the scene is closed then recreate a new parameter node immediately
+        if self.parent.isEntered:
+            self.initializeParameterNode()
+
+    def initializeParameterNode(self):
+        """
+        Ensure parameter node exists and observed.
+        """
+        # Parameter node stores all user choices in parameter values, node selections, etc.
