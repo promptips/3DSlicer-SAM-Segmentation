@@ -856,3 +856,94 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         self._parameterNode.SetParameter("SAMCurrentModel", self.ui.modelDropDown.currentText)
 
         self._parameterNode.EndModify(wasModified)
+
+    def initializeVariables(self):
+        
+        if not self._parameterNode.GetNodeReference("InputVolume"):
+            firstVolumeNode = slicer.mrmlScene.GetFirstNodeByClass("vtkMRMLScalarVolumeNode")
+            
+            if firstVolumeNode:
+                self._parameterNode.SetNodeReferenceID("InputVolume", firstVolumeNode.GetID())
+                self.volume = slicer.util.arrayFromVolume(self._parameterNode.GetNodeReference("InputVolume"))
+                self.volumeShape = self.volume.shape
+                if self._parameterNode.GetParameter("SAMCurrentSegment") not in self.segmentIdToSegmentationMask:
+                    self.segmentIdToSegmentationMask[self._parameterNode.GetParameter("SAMCurrentSegment")] = np.zeros(self.volumeShape)
+                self.sliceAccessorDimension = self.getSliceAccessorDimension()
+                sampleInputImage = None
+
+                if self.sliceAccessorDimension == 0:
+                    sampleInputImage = self.volume[0,:,:]
+                    self.nofSlices = self.volume.shape[0]
+                elif self.sliceAccessorDimension == 1:
+                    sampleInputImage = self.volume[:,0,:]
+                    self.nofSlices = self.volume.shape[1]
+                else:
+                    sampleInputImage = self.volume[:,:,0]
+                    self.nofSlices = self.volume.shape[2]
+
+                self.imageShape = sampleInputImage.shape
+            else:
+                slicer.util.warningDisplay("You need to add data first to start segmentation!")
+                return False
+        
+        return True
+            
+    def createSlices(self):
+        if not os.path.exists(self.slicesFolder):
+            os.makedirs(self.slicesFolder)
+
+        oldSliceFiles = glob.glob(self.slicesFolder + "/*")
+        for filename in oldSliceFiles:
+            os.remove(filename)
+
+        for sliceIndex in range(self.nofSlices):
+            sliceImage = self.getSliceBasedOnSliceAccessorDimension(sliceIndex)
+            np.save(self.slicesFolder + "/" + f"slice_{sliceIndex}", sliceImage)
+
+    def getSliceBasedOnSliceAccessorDimension(self, sliceIndex):
+        if self.sliceAccessorDimension == 0:
+            return self.volume[sliceIndex, :, :]
+        elif self.sliceAccessorDimension == 1:
+            return self.volume[:, sliceIndex, :]
+        else:
+            return self.volume[:, :, sliceIndex]
+
+    def createFeatures(self):
+        if not os.path.exists(self.featuresFolder):
+            os.makedirs(self.featuresFolder)
+
+        oldFeatureFiles = glob.glob(self.featuresFolder + "/*")
+        for filename in oldFeatureFiles:
+            os.remove(filename)
+
+        for filename in os.listdir(self.slicesFolder):
+            #if filename in ('slice_68.npy', 'slice_69.npy', 'slice_70.npy'):
+            image = np.load(self.slicesFolder + "/" + filename)
+            image = (255 * (image - np.min(image)) / np.ptp(image)).astype(np.uint8)
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+            self.sam.set_image(image)
+
+            with open(self.featuresFolder + "/" + os.path.splitext(filename)[0] + "_features.pkl", "wb") as f:
+                if "SAM-2" in self.modelName:
+                    pickle.dump(self.sam._features, f)
+                else:
+                    pickle.dump(self.sam.features, f)
+
+    def onStartSegmentation(self):
+        if not self.initializeVariables():
+            return
+
+        currentSegment = self._parameterNode.GetParameter("SAMCurrentSegment")
+        currentSliceIndex = self.getIndexOfCurrentSlice()
+        previouslyProducedMask = None
+
+        if self.sliceAccessorDimension == 2:
+            previouslyProducedMask = self.segmentIdToSegmentationMask[currentSegment][:, :, currentSliceIndex]
+        elif self.sliceAccessorDimension == 1:
+            previouslyProducedMask = self.segmentIdToSegmentationMask[currentSegment][:, currentSliceIndex, :]
+        else:
+            previouslyProducedMask = self.segmentIdToSegmentationMask[currentSegment][currentSliceIndex, :, :]
+
+        if np.any(previouslyProducedMask):
+            segmentationNode = self._parameterNode.GetNodeReference("SAMSegmentationNode")
+            currentLabel = segmentationNode.GetSegmentation().GetSegment(currentSegment).GetName()
