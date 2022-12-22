@@ -947,3 +947,130 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         if np.any(previouslyProducedMask):
             segmentationNode = self._parameterNode.GetNodeReference("SAMSegmentationNode")
             currentLabel = segmentationNode.GetSegmentation().GetSegment(currentSegment).GetName()
+
+            confirmed = slicer.util.confirmOkCancelDisplay(
+                f"Are you sure you want to re-annotate {currentLabel} for the current slice? All of your previous annotation for {currentLabel} in the current slice will be removed!",
+                windowTitle="Warning",
+            )
+            if not confirmed:
+                return
+
+        if not self.featuresAreExtracted:
+            self.extractFeatures()
+            self.featuresAreExtracted = True
+
+        roiList = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
+        for roiNode in roiList:
+            slicer.mrmlScene.RemoveNode(roiNode)
+
+        self.currentlySegmenting = True
+        self.initializeSegmentationProcess()
+        self.positivePromptPointsNode.RemoveAllControlPoints()
+        self.negativePromptPointsNode.RemoveAllControlPoints()
+        self.collectPromptInputsAndPredictSegmentationMask()
+        self.updateSegmentationScene()
+
+    def getSliceAccessorDimension(self):
+        npArray = np.zeros((3, 3))
+        self._parameterNode.GetNodeReference("InputVolume").GetIJKToRASDirections(npArray)
+        npArray = np.transpose(npArray)[0]
+        maxIndex = 0
+        maxValue = np.abs(npArray[0])
+
+        for index in range(len(npArray)):
+            if np.abs(npArray[index]) > maxValue:
+                maxValue = np.abs(npArray[index])
+                maxIndex = index
+
+        return maxIndex
+
+    def onStopSegmentButton(self):
+        self.currentlySegmenting = False
+        self.masks = None
+        self.init_masks = None
+
+        self.positivePromptPointsNode.RemoveAllControlPoints()
+        self.negativePromptPointsNode.RemoveAllControlPoints()
+
+        roiList = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
+        for roiNode in roiList:
+            slicer.mrmlScene.RemoveNode(roiNode)
+
+    def onGoToSegmentEditor(self):
+        slicer.util.selectModule("SegmentEditor")
+
+    def onGoToMarkups(self):
+        slicer.util.selectModule("Markups")
+
+    def getIndexOfCurrentSlice(self):
+        redView = slicer.app.layoutManager().sliceWidget("Red")
+        redViewLogic = redView.sliceLogic()
+        return redViewLogic.GetSliceIndexFromOffset(redViewLogic.GetSliceOffset()) - 1
+
+    def updateSegmentationScene(self):
+        if self.currentlySegmenting:
+            currentSegment = self._parameterNode.GetParameter("SAMCurrentSegment")
+            currentSliceIndex = self.getIndexOfCurrentSlice()
+
+            if currentSegment not in self.segmentIdToSegmentationMask:
+                self.segmentIdToSegmentationMask[currentSegment] = np.zeros(self.volumeShape)
+            if self.sliceAccessorDimension == 2:
+                self.segmentIdToSegmentationMask[currentSegment][:, :, currentSliceIndex] = self.producedMask
+            elif self.sliceAccessorDimension == 1:
+                self.segmentIdToSegmentationMask[currentSegment][:, currentSliceIndex, :] = self.producedMask
+            else:
+                self.segmentIdToSegmentationMask[currentSegment][currentSliceIndex, :, :] = self.producedMask
+
+            slicer.util.updateSegmentBinaryLabelmapFromArray(
+                self.segmentIdToSegmentationMask[currentSegment],
+                self._parameterNode.GetNodeReference("SAMSegmentationNode"),
+                self._parameterNode.GetParameter("SAMCurrentSegment"),
+                self._parameterNode.GetNodeReference("InputVolume"),
+            )
+
+        qt.QTimer.singleShot(100, self.updateSegmentationScene)
+
+    def initializeSegmentationProcess(self):
+        self.positivePromptPointsNode = self._parameterNode.GetNodeReference("positivePromptPointsNode")
+        self.negativePromptPointsNode = self._parameterNode.GetNodeReference("negativePromptPointsNode")
+
+        self.volumeRasToIjk = vtk.vtkMatrix4x4()
+        self.volumeIjkToRas = vtk.vtkMatrix4x4()
+        self._parameterNode.GetNodeReference("InputVolume").GetRASToIJKMatrix(self.volumeRasToIjk)
+        self._parameterNode.GetNodeReference("InputVolume").GetIJKToRASMatrix(self.volumeIjkToRas)
+
+    def combineMultipleMasks(self, masks):
+        finalMask = np.full(masks[0].shape, False)
+        for mask in masks:
+            finalMask[mask == True] = True
+
+        return finalMask
+
+    def collectPromptInputsAndPredictSegmentationMask(self):
+        if self.currentlySegmenting:
+            self.isTherePromptBoxes = False
+            self.isTherePromptPoints = False
+            currentSliceIndex = self.getIndexOfCurrentSlice()
+
+            # collect prompt points
+            positivePromptPointList, negativePromptPointList = [], []
+
+            nofPositivePromptPoints = self.positivePromptPointsNode.GetNumberOfControlPoints()
+            for i in range(nofPositivePromptPoints):
+                if self.positivePromptPointsNode.GetNthControlPointVisibility(i):
+                    pointRAS = [0, 0, 0]
+                    self.positivePromptPointsNode.GetNthControlPointPositionWorld(i, pointRAS)
+                    pointIJK = [0, 0, 0, 1]
+                    self.volumeRasToIjk.MultiplyPoint(np.append(pointRAS, 1.0), pointIJK)
+                    pointIJK = [int(round(c)) for c in pointIJK[0:3]]
+
+                    if self.sliceAccessorDimension == 2:
+                        positivePromptPointList.append([pointIJK[1], pointIJK[2]])
+                    elif self.sliceAccessorDimension == 1:
+                        positivePromptPointList.append([pointIJK[0], pointIJK[2]])
+                    elif self.sliceAccessorDimension == 0:
+                        positivePromptPointList.append([pointIJK[0], pointIJK[1]])
+
+            nofNegativePromptPoints = self.negativePromptPointsNode.GetNumberOfControlPoints()
+            for i in range(nofNegativePromptPoints):
+                if self.negativePromptPointsNode.GetNthControlPointVisibility(i):
