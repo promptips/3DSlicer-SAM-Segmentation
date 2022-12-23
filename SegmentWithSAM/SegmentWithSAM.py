@@ -1074,3 +1074,103 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
             nofNegativePromptPoints = self.negativePromptPointsNode.GetNumberOfControlPoints()
             for i in range(nofNegativePromptPoints):
                 if self.negativePromptPointsNode.GetNthControlPointVisibility(i):
+                    pointRAS = [0, 0, 0]
+                    self.negativePromptPointsNode.GetNthControlPointPositionWorld(i, pointRAS)
+                    pointIJK = [0, 0, 0, 1]
+                    self.volumeRasToIjk.MultiplyPoint(np.append(pointRAS, 1.0), pointIJK)
+                    pointIJK = [int(round(c)) for c in pointIJK[0:3]]
+
+                    if self.sliceAccessorDimension == 2:
+                        negativePromptPointList.append([pointIJK[1], pointIJK[2]])
+                    elif self.sliceAccessorDimension == 1:
+                        negativePromptPointList.append([pointIJK[0], pointIJK[2]])
+                    elif self.sliceAccessorDimension == 0:
+                        negativePromptPointList.append([pointIJK[0], pointIJK[1]])
+
+            self.promptPointCoordinations = positivePromptPointList + negativePromptPointList
+            self.promptPointLabels = [1] * len(positivePromptPointList) + [0] * len(negativePromptPointList)
+
+            if len(self.promptPointCoordinations) != 0:
+                self.isTherePromptPoints = True
+
+            # collect prompt boxes
+            boxList = []
+            planeList = []
+
+            roiBoxes = slicer.util.getNodesByClass("vtkMRMLMarkupsROINode")
+            planes = slicer.util.getNodesByClass("vtkMRMLMarkupsPlaneNode")
+
+            for planeMarkup in planes:
+                planeBounds = [0, 0, 0, 0, 0, 0]
+                planeMarkup.GetBounds(planeBounds)
+
+                minBoundaries = self.volumeRasToIjk.MultiplyPoint([planeBounds[0], planeBounds[2], planeBounds[4], 1])
+                maxBoundaries = self.volumeRasToIjk.MultiplyPoint([planeBounds[1], planeBounds[3], planeBounds[5], 1])
+
+                if currentSliceIndex in self.allPlaneIndices:
+                    if self.sliceAccessorDimension == 2:
+                        boxList.append([maxBoundaries[1], maxBoundaries[2], minBoundaries[1], minBoundaries[2]])
+                    elif self.sliceAccessorDimension == 1:
+                        boxList.append([maxBoundaries[0], maxBoundaries[2], minBoundaries[0], minBoundaries[2]])
+                    elif self.sliceAccessorDimension == 0:
+                        boxList.append([maxBoundaries[0], maxBoundaries[1], minBoundaries[0], minBoundaries[1]])
+                
+
+            for roiBox in roiBoxes:
+                boxBounds = np.zeros(6)
+                roiBox.GetBounds(boxBounds)
+                minBoundaries = self.volumeRasToIjk.MultiplyPoint([boxBounds[0], boxBounds[2], boxBounds[4], 1])
+                maxBoundaries = self.volumeRasToIjk.MultiplyPoint([boxBounds[1], boxBounds[3], boxBounds[5], 1])
+
+                if self.sliceAccessorDimension == 2:
+                    boxList.append([maxBoundaries[1], maxBoundaries[2], minBoundaries[1], minBoundaries[2]])
+                elif self.sliceAccessorDimension == 1:
+                    boxList.append([maxBoundaries[0], maxBoundaries[2], minBoundaries[0], minBoundaries[2]])
+                elif self.sliceAccessorDimension == 0:
+                    boxList.append([maxBoundaries[0], maxBoundaries[1], minBoundaries[0], minBoundaries[1]])
+
+            if len(boxList) != 0:
+                self.isTherePromptBoxes = True
+
+            # predict mask
+            with open(self.featuresFolder + "/" + f"slice_{currentSliceIndex}_features.pkl", "rb") as f:
+                if "SAM-2" in self.modelName:
+                    self.sam._features = pickle.load(f)
+                else:
+                    self.sam.features = pickle.load(f)
+
+            if self.isTherePromptBoxes and not self.isTherePromptPoints:
+                if "SAM-2" in self.modelName:
+                    self.masks, _, _ = self.sam.predict(
+                        point_coords=None,
+                        point_labels=None,
+                        box=np.array(boxList),
+                        multimask_output = True,
+                    )
+                else:
+                    inputBoxes = torch.tensor(boxList, device=self.device)
+                    transformedBoxes = self.sam.transform.apply_boxes_torch(inputBoxes, self.imageShape)
+
+                    self.masks, _, _ = self.sam.predict_torch(
+                        point_coords=None,
+                        point_labels=None,
+                        boxes=transformedBoxes,
+                        multimask_output = True,
+                    )
+                    self.masks = self.masks.cpu().numpy()
+                self.masks = self.combineMultipleMasks(self.masks)
+
+            elif self.isTherePromptPoints and not self.isTherePromptBoxes:
+                self.masks, _, _ = self.sam.predict(
+                    point_coords=np.array(self.promptPointCoordinations),
+                    point_labels=np.array(self.promptPointLabels),
+                    multimask_output=True,
+                )
+                
+            elif self.isTherePromptBoxes and self.isTherePromptPoints:
+                self.masks, _, _ = self.sam.predict(
+                    point_coords=np.array(self.promptPointCoordinations),
+                    point_labels=np.array(self.promptPointLabels),
+                    box=np.array(boxList[0]),
+                    multimask_output=True,
+                )
