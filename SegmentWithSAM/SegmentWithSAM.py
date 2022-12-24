@@ -1174,3 +1174,57 @@ class SegmentWithSAMWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
                     box=np.array(boxList[0]),
                     multimask_output=True,
                 )
+
+            else:
+                self.masks = None
+
+            if self.masks is not None:
+                if self._parameterNode.GetParameter("SAMCurrentMask") == "Mask-1":
+                    self.producedMask = self.masks[1][:]
+                elif self._parameterNode.GetParameter("SAMCurrentMask") == "Mask-2":
+                    self.producedMask = self.masks[0][:]
+                else:
+                    self.producedMask = self.masks[2][:]
+            else:
+                self.producedMask = np.full(self.imageShape, False)
+
+            qt.QTimer.singleShot(100, self.collectPromptInputsAndPredictSegmentationMask)
+
+    def extractFeatures(self):
+        with slicer.util.MessageDialog("Please wait until SAM has processed the input."):
+            with slicer.util.WaitCursor():
+                self.createSlices()
+                self.createFeatures()
+
+        print("Features are extracted. You can start segmentation by placing prompt points or ROIs (boundary boxes)!")
+
+
+#
+# SegmentWithSAMLogic
+#
+
+
+class SegmentWithSAMLogic(ScriptedLoadableModuleLogic):
+    """This class should implement all the actual
+    computation done by your module.  The interface
+    should be such that other python code can import
+    this class and make use of the functionality without
+    requiring an instance of the Widget.
+    Uses ScriptedLoadableModuleLogic base class, available at:
+    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
+    """
+
+    def __init__(self):
+        """
+        Called when the logic class is instantiated. Can be used for initializing member variables.
+        """
+        ScriptedLoadableModuleLogic.__init__(self)
+
+    def setDefaultParameters(self, parameterNode):
+        """
+        Initialize parameter node with default settings.
+        """
+        if not parameterNode.GetParameter("Threshold"):
+            parameterNode.SetParameter("Threshold", "100.0")
+        if not parameterNode.GetParameter("Invert"):
+            parameterNode.SetParameter("Invert", "false")
