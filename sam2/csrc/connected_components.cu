@@ -150,3 +150,109 @@ __global__ void final_labeling(
     if (img[idx + 1])
       label[idx + 1] = y;
     else
+      label[idx + 1] = 0;
+
+    if (row + 1 < H) {
+      if (img[idx + W + 1])
+        label[idx + W + 1] = y;
+      else
+        label[idx + W + 1] = 0;
+    }
+  }
+
+  if (row + 1 < H) {
+    if (img[idx + W])
+      label[idx + W] = y;
+    else
+      label[idx + W] = 0;
+  }
+}
+
+__global__ void init_counting(
+    const int32_t* label,
+    int32_t* count_init,
+    const int32_t W,
+    const int32_t H) {
+  const uint32_t row = (blockIdx.y * blockDim.y + threadIdx.y);
+  const uint32_t col = (blockIdx.x * blockDim.x + threadIdx.x);
+  const uint32_t idx = row * W + col;
+
+  if (row >= H || col >= W)
+    return;
+
+  int32_t y = label[idx];
+  if (y > 0) {
+    int32_t count_idx = y - 1;
+    atomicAdd(count_init + count_idx, 1);
+  }
+}
+
+__global__ void final_counting(
+    const int32_t* label,
+    const int32_t* count_init,
+    int32_t* count_final,
+    const int32_t W,
+    const int32_t H) {
+  const uint32_t row = (blockIdx.y * blockDim.y + threadIdx.y);
+  const uint32_t col = (blockIdx.x * blockDim.x + threadIdx.x);
+  const uint32_t idx = row * W + col;
+
+  if (row >= H || col >= W)
+    return;
+
+  int32_t y = label[idx];
+  if (y > 0) {
+    int32_t count_idx = y - 1;
+    count_final[idx] = count_init[count_idx];
+  } else {
+    count_final[idx] = 0;
+  }
+}
+
+} // namespace cc2d
+
+std::vector<torch::Tensor> get_connected_componnets(
+    const torch::Tensor& inputs) {
+  AT_ASSERTM(inputs.is_cuda(), "inputs must be a CUDA tensor");
+  AT_ASSERTM(inputs.ndimension() == 4, "inputs must be [N, 1, H, W] shape");
+  AT_ASSERTM(
+      inputs.scalar_type() == torch::kUInt8, "inputs must be a uint8 type");
+
+  const uint32_t N = inputs.size(0);
+  const uint32_t C = inputs.size(1);
+  const uint32_t H = inputs.size(2);
+  const uint32_t W = inputs.size(3);
+
+  AT_ASSERTM(C == 1, "inputs must be [N, 1, H, W] shape");
+  AT_ASSERTM((H % 2) == 0, "height must be an even number");
+  AT_ASSERTM((W % 2) == 0, "width must be an even number");
+
+  // label must be uint32_t
+  auto label_options =
+      torch::TensorOptions().dtype(torch::kInt32).device(inputs.device());
+  torch::Tensor labels = torch::zeros({N, C, H, W}, label_options);
+  torch::Tensor counts_init = torch::zeros({N, C, H, W}, label_options);
+  torch::Tensor counts_final = torch::zeros({N, C, H, W}, label_options);
+
+  dim3 grid = dim3(
+      ((W + 1) / 2 + BLOCK_COLS - 1) / BLOCK_COLS,
+      ((H + 1) / 2 + BLOCK_ROWS - 1) / BLOCK_ROWS);
+  dim3 block = dim3(BLOCK_COLS, BLOCK_ROWS);
+  dim3 grid_count =
+      dim3((W + BLOCK_COLS) / BLOCK_COLS, (H + BLOCK_ROWS) / BLOCK_ROWS);
+  dim3 block_count = dim3(BLOCK_COLS, BLOCK_ROWS);
+  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+  for (int n = 0; n < N; n++) {
+    uint32_t offset = n * H * W;
+
+    cc2d::init_labeling<<<grid, block, 0, stream>>>(
+        labels.data_ptr<int32_t>() + offset, W, H);
+    cc2d::merge<<<grid, block, 0, stream>>>(
+        inputs.data_ptr<uint8_t>() + offset,
+        labels.data_ptr<int32_t>() + offset,
+        W,
+        H);
+    cc2d::compression<<<grid, block, 0, stream>>>(
+        labels.data_ptr<int32_t>() + offset, W, H);
+    cc2d::final_labeling<<<grid, block, 0, stream>>>(
