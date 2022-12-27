@@ -256,3 +256,35 @@ std::vector<torch::Tensor> get_connected_componnets(
     cc2d::compression<<<grid, block, 0, stream>>>(
         labels.data_ptr<int32_t>() + offset, W, H);
     cc2d::final_labeling<<<grid, block, 0, stream>>>(
+        inputs.data_ptr<uint8_t>() + offset,
+        labels.data_ptr<int32_t>() + offset,
+        W,
+        H);
+
+    // get the counting of each pixel
+    cc2d::init_counting<<<grid_count, block_count, 0, stream>>>(
+        labels.data_ptr<int32_t>() + offset,
+        counts_init.data_ptr<int32_t>() + offset,
+        W,
+        H);
+    cc2d::final_counting<<<grid_count, block_count, 0, stream>>>(
+        labels.data_ptr<int32_t>() + offset,
+        counts_init.data_ptr<int32_t>() + offset,
+        counts_final.data_ptr<int32_t>() + offset,
+        W,
+        H);
+  }
+
+  // returned values are [labels, counts]
+  std::vector<torch::Tensor> outputs;
+  outputs.push_back(labels);
+  outputs.push_back(counts_final);
+  return outputs;
+}
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def(
+      "get_connected_componnets",
+      &get_connected_componnets,
+      "get_connected_componnets");
+}
