@@ -94,3 +94,89 @@ class CXBlock(nn.Module):
             dim, 4 * dim
         )  # pointwise/1x1 convs, implemented with linear layers
         self.act = nn.GELU()
+        self.pwconv2 = nn.Linear(4 * dim, dim)
+        self.gamma = (
+            nn.Parameter(layer_scale_init_value * torch.ones((dim)), requires_grad=True)
+            if layer_scale_init_value > 0
+            else None
+        )
+        self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+
+    def forward(self, x):
+        input = x
+        x = self.dwconv(x)
+        x = self.norm(x)
+        x = x.permute(0, 2, 3, 1)  # (N, C, H, W) -> (N, H, W, C)
+        x = self.pwconv1(x)
+        x = self.act(x)
+        x = self.pwconv2(x)
+        if self.gamma is not None:
+            x = self.gamma * x
+        x = x.permute(0, 3, 1, 2)  # (N, H, W, C) -> (N, C, H, W)
+
+        x = input + self.drop_path(x)
+        return x
+
+
+class Fuser(nn.Module):
+    def __init__(self, layer, num_layers, dim=None, input_projection=False):
+        super().__init__()
+        self.proj = nn.Identity()
+        self.layers = get_clones(layer, num_layers)
+
+        if input_projection:
+            assert dim is not None
+            self.proj = nn.Conv2d(dim, dim, kernel_size=1)
+
+    def forward(self, x):
+        # normally x: (N, C, H, W)
+        x = self.proj(x)
+        for layer in self.layers:
+            x = layer(x)
+        return x
+
+
+class MemoryEncoder(nn.Module):
+    def __init__(
+        self,
+        out_dim,
+        mask_downsampler,
+        fuser,
+        position_encoding,
+        in_dim=256,  # in_dim of pix_feats
+    ):
+        super().__init__()
+
+        self.mask_downsampler = mask_downsampler
+
+        self.pix_feat_proj = nn.Conv2d(in_dim, in_dim, kernel_size=1)
+        self.fuser = fuser
+        self.position_encoding = position_encoding
+        self.out_proj = nn.Identity()
+        if out_dim != in_dim:
+            self.out_proj = nn.Conv2d(in_dim, out_dim, kernel_size=1)
+
+    def forward(
+        self,
+        pix_feat: torch.Tensor,
+        masks: torch.Tensor,
+        skip_mask_sigmoid: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        ## Process masks
+        # sigmoid, so that less domain shift from gt masks which are bool
+        if not skip_mask_sigmoid:
+            masks = F.sigmoid(masks)
+        masks = self.mask_downsampler(masks)
+
+        ## Fuse pix_feats and downsampled masks
+        # in case the visual features are on CPU, cast them to CUDA
+        pix_feat = pix_feat.to(masks.device)
+
+        x = self.pix_feat_proj(pix_feat)
+        x = x + masks
+        x = self.fuser(x)
+        x = self.out_proj(x)
+
+        pos = self.position_encoding(x).to(x.dtype)
+
+        return {"vision_features": x, "vision_pos_enc": [pos]}
