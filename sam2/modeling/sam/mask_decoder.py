@@ -23,4 +23,7 @@ class MaskDecoder(nn.Module):
         iou_head_depth: int = 3,
         iou_head_hidden_dim: int = 256,
         use_high_res_features: bool = False,
-        iou_prediction_use_sigmoid=
+        iou_prediction_use_sigmoid=False,
+        dynamic_multimask_via_stability=False,
+        dynamic_multimask_stability_delta=0.05,
+   
