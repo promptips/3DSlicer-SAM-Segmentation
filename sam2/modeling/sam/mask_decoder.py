@@ -13,4 +13,9 @@ from sam2.modeling.sam2_utils import LayerNorm2d, MLP
 
 
 class MaskDecoder(nn.Module):
-    def _
+    def __init__(
+        self,
+        *,
+        transformer_dim: int,
+        transformer: nn.Module,
+        num_multimask_outputs:
