@@ -21,4 +21,6 @@ class MaskDecoder(nn.Module):
         num_multimask_outputs: int = 3,
         activation: Type[nn.Module] = nn.GELU,
         iou_head_depth: int = 3,
-        iou_head
+        iou_head_hidden_dim: int = 256,
+        use_high_res_features: bool = False,
+        iou_prediction_use_sigmoid=
