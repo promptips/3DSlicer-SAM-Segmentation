@@ -26,4 +26,6 @@ class MaskDecoder(nn.Module):
         iou_prediction_use_sigmoid=False,
         dynamic_multimask_via_stability=False,
         dynamic_multimask_stability_delta=0.05,
-   
+        dynamic_multimask_stability_thresh=0.98,
+        pred_obj_scores: bool = False,
+        pred_obj_scores_mlp: bool = False,
