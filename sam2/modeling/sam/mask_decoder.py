@@ -29,3 +29,7 @@ class MaskDecoder(nn.Module):
         dynamic_multimask_stability_thresh=0.98,
         pred_obj_scores: bool = False,
         pred_obj_scores_mlp: bool = False,
+        use_multimask_token_for_obj_ptr: bool = False,
+    ) -> None:
+        """
+        Predicts masks given an i
