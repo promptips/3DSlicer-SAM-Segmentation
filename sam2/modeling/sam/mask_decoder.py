@@ -36,3 +36,5 @@ class MaskDecoder(nn.Module):
         transformer architecture.
 
         Arguments:
+          transformer_dim (int): the channel dimension of the transformer
+          transformer (nn.Module): t
