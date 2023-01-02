@@ -32,4 +32,7 @@ class MaskDecoder(nn.Module):
         use_multimask_token_for_obj_ptr: bool = False,
     ) -> None:
         """
-        Predicts masks given an i
+        Predicts masks given an image and prompt embeddings, using a
+        transformer architecture.
+
+        Arguments:
