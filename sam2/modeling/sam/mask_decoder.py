@@ -37,4 +37,5 @@ class MaskDecoder(nn.Module):
 
         Arguments:
           transformer_dim (int): the channel dimension of the transformer
-          transformer (nn.Module): t
+          transformer (nn.Module): the transformer used to predict masks
+          num_multimask_outputs (int): the number of masks to pre
