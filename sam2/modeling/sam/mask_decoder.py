@@ -43,4 +43,6 @@ class MaskDecoder(nn.Module):
           activation (nn.Module): the type of activation to use when
             upscaling masks
           iou_head_depth (int): the depth of the MLP used to predict
-       
+            mask quality
+          iou_head_hidden_dim (int): the hidden dimension of the MLP
+            used to predict mask quality
