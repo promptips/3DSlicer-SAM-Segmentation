@@ -49,4 +49,8 @@ class MaskDecoder(nn.Module):
         """
         super().__init__()
         self.transformer_dim = transformer_dim
-        self.transformer = transforme
+        self.transformer = transformer
+
+        self.num_multimask_outputs = num_multimask_outputs
+
+        self.iou_token = nn.Embedding(1, transfo
