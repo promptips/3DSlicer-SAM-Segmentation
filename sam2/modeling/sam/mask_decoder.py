@@ -60,4 +60,8 @@ class MaskDecoder(nn.Module):
         self.pred_obj_scores = pred_obj_scores
         if self.pred_obj_scores:
             self.obj_score_token = nn.Embedding(1, transformer_dim)
-        self.use_multimask_token_for_obj_ptr = use_multimask_token_for_obj
+        self.use_multimask_token_for_obj_ptr = use_multimask_token_for_obj_ptr
+
+        self.output_upscaling = nn.Sequential(
+            nn.ConvTranspose2d(
+                t
