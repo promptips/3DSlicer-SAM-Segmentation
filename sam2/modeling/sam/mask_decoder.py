@@ -64,4 +64,6 @@ class MaskDecoder(nn.Module):
 
         self.output_upscaling = nn.Sequential(
             nn.ConvTranspose2d(
-                t
+                transformer_dim, transformer_dim // 4, kernel_size=2, stride=2
+            ),
+            LayerNorm2d(transformer_dim
