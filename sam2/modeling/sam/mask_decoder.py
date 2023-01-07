@@ -66,4 +66,7 @@ class MaskDecoder(nn.Module):
             nn.ConvTranspose2d(
                 transformer_dim, transformer_dim // 4, kernel_size=2, stride=2
             ),
-            LayerNorm2d(transformer_dim
+            LayerNorm2d(transformer_dim // 4),
+            activation(),
+            nn.ConvTranspose2d(
+                transformer_dim // 4, transformer
