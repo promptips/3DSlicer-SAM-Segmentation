@@ -73,4 +73,7 @@ class MaskDecoder(nn.Module):
             ),
             activation(),
         )
-        self.use_
+        self.use_high_res_features = use_high_res_features
+        if use_high_res_features:
+            self.conv_s0 = nn.Conv2d(
+      
