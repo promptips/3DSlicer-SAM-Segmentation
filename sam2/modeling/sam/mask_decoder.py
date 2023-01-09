@@ -78,4 +78,6 @@ class MaskDecoder(nn.Module):
             self.conv_s0 = nn.Conv2d(
                 transformer_dim, transformer_dim // 8, kernel_size=1, stride=1
             )
-            self.conv_s1 =
+            self.conv_s1 = nn.Conv2d(
+                transformer_dim, transformer_dim // 4, kernel_size=1, stride=1
+          
