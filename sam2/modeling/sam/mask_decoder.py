@@ -98,4 +98,7 @@ class MaskDecoder(nn.Module):
         )
         if self.pred_obj_scores:
             self.pred_obj_score_head = nn.Linear(transformer_dim, 1)
-            if pred_o
+            if pred_obj_scores_mlp:
+                self.pred_obj_score_head = MLP(transformer_dim, transformer_dim, 1, 3)
+
+        # When outputtin
