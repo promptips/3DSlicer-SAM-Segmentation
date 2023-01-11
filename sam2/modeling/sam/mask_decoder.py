@@ -92,3 +92,7 @@ class MaskDecoder(nn.Module):
         self.iou_prediction_head = MLP(
             transformer_dim,
             iou_head_hidden_dim,
+            self.num_mask_tokens,
+            iou_head_depth,
+            sigmoid_output=iou_prediction_use_sigmoid,
+       
