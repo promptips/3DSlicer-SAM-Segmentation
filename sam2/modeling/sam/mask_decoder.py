@@ -102,4 +102,6 @@ class MaskDecoder(nn.Module):
                 self.pred_obj_score_head = MLP(transformer_dim, transformer_dim, 1, 3)
 
         # When outputting a single mask, optionally we can dynamically fall back to the best
-        # multimask output token if the single mask output token
+        # multimask output token if the single mask output token gives low stability scores.
+        self.dynamic_multimask_via_stability = dynamic_multimask_via_stability
+        se
