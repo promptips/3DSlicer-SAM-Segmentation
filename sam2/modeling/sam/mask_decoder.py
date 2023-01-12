@@ -105,4 +105,8 @@ class MaskDecoder(nn.Module):
         # multimask output token if the single mask output token gives low stability scores.
         self.dynamic_multimask_via_stability = dynamic_multimask_via_stability
         self.dynamic_multimask_stability_delta = dynamic_multimask_stability_delta
-        self.dynamic_multimask_sta
+        self.dynamic_multimask_stability_thresh = dynamic_multimask_stability_thresh
+
+    def forward(
+        self,
+        image_embeddings: 
