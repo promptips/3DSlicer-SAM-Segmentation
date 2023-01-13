@@ -109,4 +109,7 @@ class MaskDecoder(nn.Module):
 
     def forward(
         self,
-        image_embeddings: 
+        image_embeddings: torch.Tensor,
+        image_pe: torch.Tensor,
+        sparse_prompt_embeddings: torch.Tensor,
+        dense_prompt_embedding
