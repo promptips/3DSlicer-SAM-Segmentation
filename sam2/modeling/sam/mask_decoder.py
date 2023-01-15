@@ -123,4 +123,5 @@ class MaskDecoder(nn.Module):
         Arguments:
           image_embeddings (torch.Tensor): the embeddings from the image encoder
           image_pe (torch.Tensor): positional encoding with the shape of image_embeddings
-          sparse_
+          sparse_prompt_embeddings (torch.Tensor): the embeddings of the points and boxes
+          dense_prompt_embeddings 
