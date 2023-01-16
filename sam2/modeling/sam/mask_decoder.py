@@ -133,4 +133,6 @@ class MaskDecoder(nn.Module):
           torch.Tensor: batched predictions of mask quality
           torch.Tensor: batched SAM token for mask output
         """
-        masks, iou_pred, ma
+        masks, iou_pred, mask_tokens_out, object_score_logits = self.predict_masks(
+            image_embeddings=image_embeddings,
+       
