@@ -130,4 +130,7 @@ class MaskDecoder(nn.Module):
 
         Returns:
           torch.Tensor: batched predicted masks
-          torch.Tensor
+          torch.Tensor: batched predictions of mask quality
+          torch.Tensor: batched SAM token for mask output
+        """
+        masks, iou_pred, ma
