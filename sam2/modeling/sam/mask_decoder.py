@@ -137,4 +137,7 @@ class MaskDecoder(nn.Module):
             image_embeddings=image_embeddings,
             image_pe=image_pe,
             sparse_prompt_embeddings=sparse_prompt_embeddings,
-            dense_prompt_embeddings=
+            dense_prompt_embeddings=dense_prompt_embeddings,
+            repeat_image=repeat_image,
+            high_res_features=high_res_features,
+   
