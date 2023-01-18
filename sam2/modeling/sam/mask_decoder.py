@@ -140,4 +140,8 @@ class MaskDecoder(nn.Module):
             dense_prompt_embeddings=dense_prompt_embeddings,
             repeat_image=repeat_image,
             high_res_features=high_res_features,
-   
+        )
+
+        # Select the correct mask or masks for output
+        if multimask_output:
+            masks = masks[:, 1
