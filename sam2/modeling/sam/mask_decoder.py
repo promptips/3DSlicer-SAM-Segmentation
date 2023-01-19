@@ -152,4 +152,7 @@ class MaskDecoder(nn.Module):
             masks = masks[:, 0:1, :, :]
             iou_pred = iou_pred[:, 0:1]
 
-        if multimask_output and self.use_multima
+        if multimask_output and self.use_multimask_token_for_obj_ptr:
+            sam_tokens_out = mask_tokens_out[:, 1:]  # [b, 3, c] shape
+        else:
+            # Take t
