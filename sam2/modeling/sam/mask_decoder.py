@@ -146,4 +146,7 @@ class MaskDecoder(nn.Module):
         if multimask_output:
             masks = masks[:, 1:, :, :]
             iou_pred = iou_pred[:, 1:]
-        elif self.dynamic_multimask_via_stability and not sel
+        elif self.dynamic_multimask_via_stability and not self.training:
+            masks, iou_pred = self._dynamic_multimask_via_stability(masks, iou_pred)
+        else:
+            masks = m
