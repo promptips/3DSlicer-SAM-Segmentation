@@ -156,4 +156,5 @@ class MaskDecoder(nn.Module):
             sam_tokens_out = mask_tokens_out[:, 1:]  # [b, 3, c] shape
         else:
             # Take the mask output token. Here we *always* use the token for single mask output.
-            # At test time, even if we trac
+            # At test time, even if we track after 1-click (and using multimask_output=True),
+            # we still take the single mask 
