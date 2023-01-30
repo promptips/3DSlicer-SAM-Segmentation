@@ -158,4 +158,5 @@ class MaskDecoder(nn.Module):
             # Take the mask output token. Here we *always* use the token for single mask output.
             # At test time, even if we track after 1-click (and using multimask_output=True),
             # we still take the single mask token here. The rationale is that we always track
-            # after multiple clicks during training, so th
+            # after multiple clicks during training, so the past tokens seen during training
+            # are always the single mask token (and we'll let it be the object-memory t
