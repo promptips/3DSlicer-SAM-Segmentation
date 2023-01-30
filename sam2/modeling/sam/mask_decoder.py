@@ -163,4 +163,8 @@ class MaskDecoder(nn.Module):
             sam_tokens_out = mask_tokens_out[:, 0:1]  # [b, 1, c] shape
 
         # Prepare output
-   
+        return masks, iou_pred, sam_tokens_out, object_score_logits
+
+    def predict_masks(
+        self,
+        image_emb
