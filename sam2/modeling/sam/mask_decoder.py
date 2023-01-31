@@ -170,4 +170,6 @@ class MaskDecoder(nn.Module):
         image_embeddings: torch.Tensor,
         image_pe: torch.Tensor,
         sparse_prompt_embeddings: torch.Tensor,
-        dense_prompt
+        dense_prompt_embeddings: torch.Tensor,
+        repeat_image: bool,
+        high_res_features: Optional[List[torch.Tensor]] = None,
