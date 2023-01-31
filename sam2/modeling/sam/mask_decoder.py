@@ -167,4 +167,7 @@ class MaskDecoder(nn.Module):
 
     def predict_masks(
         self,
-        image_emb
+        image_embeddings: torch.Tensor,
+        image_pe: torch.Tensor,
+        sparse_prompt_embeddings: torch.Tensor,
+        dense_prompt
