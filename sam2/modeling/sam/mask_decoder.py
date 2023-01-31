@@ -173,3 +173,6 @@ class MaskDecoder(nn.Module):
         dense_prompt_embeddings: torch.Tensor,
         repeat_image: bool,
         high_res_features: Optional[List[torch.Tensor]] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Predicts masks. See 'forward' for more details."""
+   
