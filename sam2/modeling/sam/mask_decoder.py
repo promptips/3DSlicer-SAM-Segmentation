@@ -178,4 +178,7 @@ class MaskDecoder(nn.Module):
         # Concatenate output tokens
         s = 0
         if self.pred_obj_scores:
-            output_toke
+            output_tokens = torch.cat(
+                [
+                    self.obj_score_token.weight,
+                    self.iou_token.w
