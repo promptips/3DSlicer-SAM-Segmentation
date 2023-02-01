@@ -175,4 +175,7 @@ class MaskDecoder(nn.Module):
         high_res_features: Optional[List[torch.Tensor]] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Predicts masks. See 'forward' for more details."""
-   
+        # Concatenate output tokens
+        s = 0
+        if self.pred_obj_scores:
+            output_toke
