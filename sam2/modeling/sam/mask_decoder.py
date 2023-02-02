@@ -181,4 +181,10 @@ class MaskDecoder(nn.Module):
             output_tokens = torch.cat(
                 [
                     self.obj_score_token.weight,
-                    self.iou_token.w
+                    self.iou_token.weight,
+                    self.mask_tokens.weight,
+                ],
+                dim=0,
+            )
+            s = 1
+ 
