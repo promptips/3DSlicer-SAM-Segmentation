@@ -189,4 +189,7 @@ class MaskDecoder(nn.Module):
             s = 1
         else:
             output_tokens = torch.cat(
-                [self.iou_token.weight, self.mask_tokens.we
+                [self.iou_token.weight, self.mask_tokens.weight], dim=0
+            )
+        output_tokens = output_tokens.unsqueeze(0).expand(
+            sparse_prompt
