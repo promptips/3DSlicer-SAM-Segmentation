@@ -198,4 +198,6 @@ class MaskDecoder(nn.Module):
 
         # Expand per-image data in batch direction to be per-mask
         if repeat_image:
-           
+            src = torch.repeat_interleave(image_embeddings, tokens.shape[0], dim=0)
+        else:
+            assert image_embeddings.s
