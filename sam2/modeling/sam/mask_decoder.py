@@ -212,4 +212,6 @@ class MaskDecoder(nn.Module):
         # Run the transformer
         hs, src = self.transformer(src, pos_src, tokens)
         iou_token_out = hs[:, s, :]
-        mask_to
+        mask_tokens_out = hs[:, s + 1 : (s + 1 + self.num_mask_tokens), :]
+
+        # Upscale mask embed
