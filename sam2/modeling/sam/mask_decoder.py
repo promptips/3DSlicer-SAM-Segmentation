@@ -216,4 +216,7 @@ class MaskDecoder(nn.Module):
 
         # Upscale mask embeddings and predict masks using the mask tokens
         src = src.transpose(1, 2).view(b, c, h, w)
-        if not self
+        if not self.use_high_res_features:
+            upscaled_embedding = self.output_upscaling(src)
+        else:
+            d
