@@ -221,3 +221,5 @@ class MaskDecoder(nn.Module):
         else:
             dc1, ln1, act1, dc2, act2 = self.output_upscaling
             feat_s0, feat_s1 = high_res_features
+            upscaled_embedding = act1(ln1(dc1(src) + feat_s1))
+            upscaled_embedding = act2(dc2(u
