@@ -234,4 +234,6 @@ class MaskDecoder(nn.Module):
         masks = (hyper_in @ upscaled_embedding.view(b, c, h * w)).view(b, -1, h, w)
 
         # Generate mask quality predictions
- 
+        iou_pred = self.iou_prediction_head(iou_token_out)
+        if self.pred_obj_scores:
+            assert s == 1
