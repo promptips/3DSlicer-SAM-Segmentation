@@ -239,4 +239,5 @@ class MaskDecoder(nn.Module):
             assert s == 1
             object_score_logits = self.pred_obj_score_head(hs[:, 0, :])
         else:
-            # Obj scores logi
+            # Obj scores logits - default to 10.0, i.e. assuming the object is present, sigmoid(10)=1
+            object_score_logits = 10.0 * iou
