@@ -237,3 +237,6 @@ class MaskDecoder(nn.Module):
         iou_pred = self.iou_prediction_head(iou_token_out)
         if self.pred_obj_scores:
             assert s == 1
+            object_score_logits = self.pred_obj_score_head(hs[:, 0, :])
+        else:
+            # Obj scores logi
