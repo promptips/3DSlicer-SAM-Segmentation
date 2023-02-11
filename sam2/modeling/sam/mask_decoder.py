@@ -240,4 +240,6 @@ class MaskDecoder(nn.Module):
             object_score_logits = self.pred_obj_score_head(hs[:, 0, :])
         else:
             # Obj scores logits - default to 10.0, i.e. assuming the object is present, sigmoid(10)=1
-            object_score_logits = 10.0 * iou
+            object_score_logits = 10.0 * iou_pred.new_ones(iou_pred.shape[0], 1)
+
+        return masks, iou_pred, mask_tokens_out, object_score_logits
