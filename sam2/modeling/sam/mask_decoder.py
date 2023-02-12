@@ -243,3 +243,7 @@ class MaskDecoder(nn.Module):
             object_score_logits = 10.0 * iou_pred.new_ones(iou_pred.shape[0], 1)
 
         return masks, iou_pred, mask_tokens_out, object_score_logits
+
+    def _get_stability_scores(self, mask_logits):
+        """
+        Compute stability scores of the mask logits based on the
