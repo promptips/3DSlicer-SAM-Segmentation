@@ -250,4 +250,6 @@ class MaskDecoder(nn.Module):
         lower thresholds, similar to https://github.com/fairinternal/onevision/pull/568.
         """
         mask_logits = mask_logits.flatten(-2)
-        stability_delta = self.dynamic_multimask_stabi
+        stability_delta = self.dynamic_multimask_stability_delta
+        area_i = torch.sum(mask_logits > stability_delta, dim=-1).float()
+        area_u = torch.sum(mask_logits > -st
