@@ -253,4 +253,7 @@ class MaskDecoder(nn.Module):
         stability_delta = self.dynamic_multimask_stability_delta
         area_i = torch.sum(mask_logits > stability_delta, dim=-1).float()
         area_u = torch.sum(mask_logits > -stability_delta, dim=-1).float()
-        stability_scores = torch.where(area_u > 0, area_i / area_u, 1.0
+        stability_scores = torch.where(area_u > 0, area_i / area_u, 1.0)
+        return stability_scores
+
+    def _dynamic_multimask_via_stability(self, all_mask_logits, all_iou_scor
