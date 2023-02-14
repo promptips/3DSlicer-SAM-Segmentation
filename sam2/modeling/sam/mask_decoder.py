@@ -256,4 +256,7 @@ class MaskDecoder(nn.Module):
         stability_scores = torch.where(area_u > 0, area_i / area_u, 1.0)
         return stability_scores
 
-    def _dynamic_multimask_via_stability(self, all_mask_logits, all_iou_scor
+    def _dynamic_multimask_via_stability(self, all_mask_logits, all_iou_scores):
+        """
+        When outputting a single mask, if the stability score from the current single-mask
+        output (ba
