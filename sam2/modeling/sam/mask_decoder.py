@@ -259,4 +259,5 @@ class MaskDecoder(nn.Module):
     def _dynamic_multimask_via_stability(self, all_mask_logits, all_iou_scores):
         """
         When outputting a single mask, if the stability score from the current single-mask
-        output (ba
+        output (based on output token 0) falls below a threshold, we instead select from
+        multi-mask outputs (based on output token
