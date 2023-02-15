@@ -264,4 +264,6 @@ class MaskDecoder(nn.Module):
         IoU score. This is intended to ensure a valid mask for both clicking and tracking.
         """
         # The best mask from multimask output tokens (1~3)
-        multimask_logits = all_mas
+        multimask_logits = all_mask_logits[:, 1:, :, :]
+        multimask_iou_scores = all_iou_scores[:, 1:]
+        best_scores_inds = t
