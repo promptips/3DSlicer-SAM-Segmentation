@@ -268,4 +268,6 @@ class MaskDecoder(nn.Module):
         multimask_iou_scores = all_iou_scores[:, 1:]
         best_scores_inds = torch.argmax(multimask_iou_scores, dim=-1)
         batch_inds = torch.arange(
-            multimask_iou_scores.
+            multimask_iou_scores.size(0), device=all_iou_scores.device
+        )
+        best_multimask_logits = multimask_logits[batch_inds, best
