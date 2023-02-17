@@ -274,3 +274,6 @@ class MaskDecoder(nn.Module):
         best_multimask_logits = best_multimask_logits.unsqueeze(1)
         best_multimask_iou_scores = multimask_iou_scores[batch_inds, best_scores_inds]
         best_multimask_iou_scores = best_multimask_iou_scores.unsqueeze(1)
+
+        # The mask from singlemask output token 0 and its stability score
+        singlemask_logits =
