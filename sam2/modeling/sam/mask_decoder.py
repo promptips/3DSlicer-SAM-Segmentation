@@ -287,4 +287,6 @@ class MaskDecoder(nn.Module):
             singlemask_logits,
             best_multimask_logits,
         )
- 
+        iou_scores_out = torch.where(
+            is_stable.expand_as(singlemask_iou_scores),
+            singl
