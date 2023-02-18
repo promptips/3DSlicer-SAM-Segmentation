@@ -283,4 +283,8 @@ class MaskDecoder(nn.Module):
 
         # Dynamically fall back to best multimask output upon low stability scores.
         mask_logits_out = torch.where(
-            
+            is_stable[..., None, None].expand_as(singlemask_logits),
+            singlemask_logits,
+            best_multimask_logits,
+        )
+ 
