@@ -278,4 +278,7 @@ class MaskDecoder(nn.Module):
         # The mask from singlemask output token 0 and its stability score
         singlemask_logits = all_mask_logits[:, 0:1, :, :]
         singlemask_iou_scores = all_iou_scores[:, 0:1]
-        stability_scores = self._get_
+        stability_scores = self._get_stability_scores(singlemask_logits)
+        is_stable = stability_scores >= self.dynamic_multimask_stability_thresh
+
+        # Dyn
