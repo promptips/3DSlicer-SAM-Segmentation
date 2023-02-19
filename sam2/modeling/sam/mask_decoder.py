@@ -289,4 +289,7 @@ class MaskDecoder(nn.Module):
         )
         iou_scores_out = torch.where(
             is_stable.expand_as(singlemask_iou_scores),
-            singl
+            singlemask_iou_scores,
+            best_multimask_iou_scores,
+        )
+        return mask_logits_out, iou_scores
