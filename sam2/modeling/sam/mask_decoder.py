@@ -292,4 +292,4 @@ class MaskDecoder(nn.Module):
             singlemask_iou_scores,
             best_multimask_iou_scores,
         )
-        return mask_logits_out, iou_scores
+        return mask_logits_out, iou_scores_out
