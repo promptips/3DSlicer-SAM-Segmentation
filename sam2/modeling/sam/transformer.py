@@ -346,3 +346,16 @@ class RoPEAttention(Attention):
         except Exception as e:
             # Fall back to all kernels if the Flash attention kernel fails
             warnings.warn(
+                f"Flash Attention kernel failed due to: {e}\nFalling back to all available "
+                f"kernels for scaled_dot_product_attention (which may have a slower speed).",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            global ALLOW_ALL_KERNELS
+            ALLOW_ALL_KERNELS = True
+            out = F.scaled_dot_product_attention(q, k, v, dropout_p=dropout_p)
+
+        out = self._recombine_heads(out)
+        out = self.out_proj(out)
+
+        return out
