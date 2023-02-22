@@ -198,3 +198,124 @@ class SAM2Base(torch.nn.Module):
             "Please use the corresponding methods in SAM2VideoPredictor for inference."
             "See notebooks/video_predictor_example.ipynb for an example."
         )
+
+    def _build_sam_heads(self):
+        """Build SAM-style prompt encoder and mask decoder."""
+        self.sam_prompt_embed_dim = self.hidden_dim
+        self.sam_image_embedding_size = self.image_size // self.backbone_stride
+
+        # build PromptEncoder and MaskDecoder from SAM
+        # (their hyperparameters like `mask_in_chans=16` are from SAM code)
+        self.sam_prompt_encoder = PromptEncoder(
+            embed_dim=self.sam_prompt_embed_dim,
+            image_embedding_size=(
+                self.sam_image_embedding_size,
+                self.sam_image_embedding_size,
+            ),
+            input_image_size=(self.image_size, self.image_size),
+            mask_in_chans=16,
+        )
+        self.sam_mask_decoder = MaskDecoder(
+            num_multimask_outputs=3,
+            transformer=TwoWayTransformer(
+                depth=2,
+                embedding_dim=self.sam_prompt_embed_dim,
+                mlp_dim=2048,
+                num_heads=8,
+            ),
+            transformer_dim=self.sam_prompt_embed_dim,
+            iou_head_depth=3,
+            iou_head_hidden_dim=256,
+            use_high_res_features=self.use_high_res_features_in_sam,
+            iou_prediction_use_sigmoid=self.iou_prediction_use_sigmoid,
+            pred_obj_scores=self.pred_obj_scores,
+            pred_obj_scores_mlp=self.pred_obj_scores_mlp,
+            use_multimask_token_for_obj_ptr=self.use_multimask_token_for_obj_ptr,
+            **(self.sam_mask_decoder_extra_args or {}),
+        )
+        if self.use_obj_ptrs_in_encoder:
+            # a linear projection on SAM output tokens to turn them into object pointers
+            self.obj_ptr_proj = torch.nn.Linear(self.hidden_dim, self.hidden_dim)
+            if self.use_mlp_for_obj_ptr_proj:
+                self.obj_ptr_proj = MLP(
+                    self.hidden_dim, self.hidden_dim, self.hidden_dim, 3
+                )
+        else:
+            self.obj_ptr_proj = torch.nn.Identity()
+        if self.proj_tpos_enc_in_obj_ptrs:
+            # a linear projection on temporal positional encoding in object pointers to
+            # avoid potential interference with spatial positional encoding
+            self.obj_ptr_tpos_proj = torch.nn.Linear(self.hidden_dim, self.mem_dim)
+        else:
+            self.obj_ptr_tpos_proj = torch.nn.Identity()
+
+    def _forward_sam_heads(
+        self,
+        backbone_features,
+        point_inputs=None,
+        mask_inputs=None,
+        high_res_features=None,
+        multimask_output=False,
+    ):
+        """
+        Forward SAM prompt encoders and mask heads.
+
+        Inputs:
+        - backbone_features: image features of [B, C, H, W] shape
+        - point_inputs: a dictionary with "point_coords" and "point_labels", where
+          1) "point_coords" has [B, P, 2] shape and float32 dtype and contains the
+             absolute pixel-unit coordinate in (x, y) format of the P input points
+          2) "point_labels" has shape [B, P] and int32 dtype, where 1 means
+             positive clicks, 0 means negative clicks, and -1 means padding
+        - mask_inputs: a mask of [B, 1, H*16, W*16] shape, float or bool, with the
+          same spatial size as the image.
+        - high_res_features: either 1) None or 2) or a list of length 2 containing
+          two feature maps of [B, C, 4*H, 4*W] and [B, C, 2*H, 2*W] shapes respectively,
+          which will be used as high-resolution feature maps for SAM decoder.
+        - multimask_output: if it's True, we output 3 candidate masks and their 3
+          corresponding IoU estimates, and if it's False, we output only 1 mask and
+          its corresponding IoU estimate.
+
+        Outputs:
+        - low_res_multimasks: [B, M, H*4, W*4] shape (where M = 3 if
+          `multimask_output=True` and M = 1 if `multimask_output=False`), the SAM
+          output mask logits (before sigmoid) for the low-resolution masks, with 4x
+          the resolution (1/4 stride) of the input backbone_features.
+        - high_res_multimasks: [B, M, H*16, W*16] shape (where M = 3
+          if `multimask_output=True` and M = 1 if `multimask_output=False`),
+          upsampled from the low-resolution masks, with shape size as the image
+          (stride is 1 pixel).
+        - ious, [B, M] shape, where (where M = 3 if `multimask_output=True` and M = 1
+          if `multimask_output=False`), the estimated IoU of each output mask.
+        - low_res_masks: [B, 1, H*4, W*4] shape, the best mask in `low_res_multimasks`.
+          If `multimask_output=True`, it's the mask with the highest IoU estimate.
+          If `multimask_output=False`, it's the same as `low_res_multimasks`.
+        - high_res_masks: [B, 1, H*16, W*16] shape, the best mask in `high_res_multimasks`.
+          If `multimask_output=True`, it's the mask with the highest IoU estimate.
+          If `multimask_output=False`, it's the same as `high_res_multimasks`.
+        - obj_ptr: [B, C] shape, the object pointer vector for the output mask, extracted
+          based on the output token from the SAM mask decoder.
+        """
+        B = backbone_features.size(0)
+        device = backbone_features.device
+        assert backbone_features.size(1) == self.sam_prompt_embed_dim
+        assert backbone_features.size(2) == self.sam_image_embedding_size
+        assert backbone_features.size(3) == self.sam_image_embedding_size
+
+        # a) Handle point prompts
+        if point_inputs is not None:
+            sam_point_coords = point_inputs["point_coords"]
+            sam_point_labels = point_inputs["point_labels"]
+            assert sam_point_coords.size(0) == B and sam_point_labels.size(0) == B
+        else:
+            # If no points are provide, pad with an empty point (with label -1)
+            sam_point_coords = torch.zeros(B, 1, 2, device=device)
+            sam_point_labels = -torch.ones(B, 1, dtype=torch.int32, device=device)
+
+        # b) Handle mask prompts
+        if mask_inputs is not None:
+            # If mask_inputs is provided, downsize it into low-res mask input if needed
+            # and feed it as a dense mask prompt into the SAM mask encoder
+            assert len(mask_inputs.shape) == 4 and mask_inputs.shape[:2] == (B, 1)
+            if mask_inputs.shape[-2:] != self.sam_prompt_encoder.mask_input_size:
+                sam_mask_prompt = F.interpolate(
