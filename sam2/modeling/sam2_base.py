@@ -784,3 +784,47 @@ class SAM2Base(torch.nn.Module):
         # Finally run the memory encoder on the predicted mask to encode
         # it into a new memory feature (that can be used in future frames)
         if run_mem_encoder and self.num_maskmem > 0:
+            high_res_masks_for_mem_enc = high_res_masks
+            maskmem_features, maskmem_pos_enc = self._encode_new_memory(
+                current_vision_feats=current_vision_feats,
+                feat_sizes=feat_sizes,
+                pred_masks_high_res=high_res_masks_for_mem_enc,
+                is_mask_from_pts=(point_inputs is not None),
+            )
+            current_out["maskmem_features"] = maskmem_features
+            current_out["maskmem_pos_enc"] = maskmem_pos_enc
+        else:
+            current_out["maskmem_features"] = None
+            current_out["maskmem_pos_enc"] = None
+
+        return current_out
+
+    def _use_multimask(self, is_init_cond_frame, point_inputs):
+        """Whether to use multimask output in the SAM head."""
+        num_pts = 0 if point_inputs is None else point_inputs["point_labels"].size(1)
+        multimask_output = (
+            self.multimask_output_in_sam
+            and (is_init_cond_frame or self.multimask_output_for_tracking)
+            and (self.multimask_min_pt_num <= num_pts <= self.multimask_max_pt_num)
+        )
+        return multimask_output
+
+    def _apply_non_overlapping_constraints(self, pred_masks):
+        """
+        Apply non-overlapping constraints to the object scores in pred_masks. Here we
+        keep only the highest scoring object at each spatial location in pred_masks.
+        """
+        batch_size = pred_masks.size(0)
+        if batch_size == 1:
+            return pred_masks
+
+        device = pred_masks.device
+        # "max_obj_inds": object index of the object with the highest score at each location
+        max_obj_inds = torch.argmax(pred_masks, dim=0, keepdim=True)
+        # "batch_obj_inds": object index of each object slice (along dim 0) in `pred_masks`
+        batch_obj_inds = torch.arange(batch_size, device=device)[:, None, None, None]
+        keep = max_obj_inds == batch_obj_inds
+        # suppress overlapping regions' scores below -10.0 so that the foreground regions
+        # don't overlap (here sigmoid(-10.0)=4.5398e-05)
+        pred_masks = torch.where(keep, pred_masks, torch.clamp(pred_masks, max=-10.0))
+        return pred_masks
