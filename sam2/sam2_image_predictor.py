@@ -458,3 +458,10 @@ class SAM2ImagePredictor:
         return self.model.device
 
     def reset_predictor(self) -> None:
+        """
+        Resets the image embeddings and other state variables.
+        """
+        self._is_image_set = False
+        self._features = None
+        self._orig_hw = None
+        self._is_batch = False
