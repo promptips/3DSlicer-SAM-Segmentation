@@ -427,3 +427,88 @@ class SAM2VideoPredictor(SAM2Base):
         is_cond,
         run_mem_encoder,
         consolidate_at_video_res=False,
+    ):
+        """
+        Consolidate the per-object temporary outputs in `temp_output_dict_per_obj` on
+        a frame into a single output for all objects, including
+        1) fill any missing objects either from `output_dict_per_obj` (if they exist in
+           `output_dict_per_obj` for this frame) or leave them as placeholder values
+           (if they don't exist in `output_dict_per_obj` for this frame);
+        2) if specified, rerun memory encoder after apply non-overlapping constraints
+           on the object scores.
+        """
+        batch_size = self._get_obj_num(inference_state)
+        storage_key = "cond_frame_outputs" if is_cond else "non_cond_frame_outputs"
+        # Optionally, we allow consolidating the temporary outputs at the original
+        # video resolution (to provide a better editing experience for mask prompts).
+        if consolidate_at_video_res:
+            assert not run_mem_encoder, "memory encoder cannot run at video resolution"
+            consolidated_H = inference_state["video_height"]
+            consolidated_W = inference_state["video_width"]
+            consolidated_mask_key = "pred_masks_video_res"
+        else:
+            consolidated_H = consolidated_W = self.image_size // 4
+            consolidated_mask_key = "pred_masks"
+
+        # Initialize `consolidated_out`. Its "maskmem_features" and "maskmem_pos_enc"
+        # will be added when rerunning the memory encoder after applying non-overlapping
+        # constraints to object scores. Its "pred_masks" are prefilled with a large
+        # negative value (NO_OBJ_SCORE) to represent missing objects.
+        consolidated_out = {
+            "maskmem_features": None,
+            "maskmem_pos_enc": None,
+            consolidated_mask_key: torch.full(
+                size=(batch_size, 1, consolidated_H, consolidated_W),
+                fill_value=NO_OBJ_SCORE,
+                dtype=torch.float32,
+                device=inference_state["storage_device"],
+            ),
+            "obj_ptr": torch.full(
+                size=(batch_size, self.hidden_dim),
+                fill_value=NO_OBJ_SCORE,
+                dtype=torch.float32,
+                device=inference_state["device"],
+            ),
+        }
+        empty_mask_ptr = None
+        for obj_idx in range(batch_size):
+            obj_temp_output_dict = inference_state["temp_output_dict_per_obj"][obj_idx]
+            obj_output_dict = inference_state["output_dict_per_obj"][obj_idx]
+            out = obj_temp_output_dict[storage_key].get(frame_idx, None)
+            # If the object doesn't appear in "temp_output_dict_per_obj" on this frame,
+            # we fall back and look up its previous output in "output_dict_per_obj".
+            # We look up both "cond_frame_outputs" and "non_cond_frame_outputs" in
+            # "output_dict_per_obj" to find a previous output for this object.
+            if out is None:
+                out = obj_output_dict["cond_frame_outputs"].get(frame_idx, None)
+            if out is None:
+                out = obj_output_dict["non_cond_frame_outputs"].get(frame_idx, None)
+            # If the object doesn't appear in "output_dict_per_obj" either, we skip it
+            # and leave its mask scores to the default scores (i.e. the NO_OBJ_SCORE
+            # placeholder above) and set its object pointer to be a dummy pointer.
+            if out is None:
+                # Fill in dummy object pointers for those objects without any inputs or
+                # tracking outcomes on this frame (only do it under `run_mem_encoder=True`,
+                # i.e. when we need to build the memory for tracking).
+                if run_mem_encoder:
+                    if empty_mask_ptr is None:
+                        empty_mask_ptr = self._get_empty_mask_ptr(
+                            inference_state, frame_idx
+                        )
+                    # fill object pointer with a dummy pointer (based on an empty mask)
+                    consolidated_out["obj_ptr"][obj_idx : obj_idx + 1] = empty_mask_ptr
+                continue
+            # Add the temporary object output mask to consolidated output mask
+            obj_mask = out["pred_masks"]
+            consolidated_pred_masks = consolidated_out[consolidated_mask_key]
+            if obj_mask.shape[-2:] == consolidated_pred_masks.shape[-2:]:
+                consolidated_pred_masks[obj_idx : obj_idx + 1] = obj_mask
+            else:
+                # Resize first if temporary object mask has a different resolution
+                resized_obj_mask = torch.nn.functional.interpolate(
+                    obj_mask,
+                    size=consolidated_pred_masks.shape[-2:],
+                    mode="bilinear",
+                    align_corners=False,
+                )
+                consolidated_pred_masks[obj_idx : obj_idx + 1] = resized_obj_mask
