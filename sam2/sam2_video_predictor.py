@@ -100,3 +100,105 @@ class SAM2VideoPredictor(SAM2Base):
             "cond_frame_outputs": set(),  # set containing frame indices
             "non_cond_frame_outputs": set(),  # set containing frame indices
         }
+        # metadata for each tracking frame (e.g. which direction it's tracked)
+        inference_state["tracking_has_started"] = False
+        inference_state["frames_already_tracked"] = {}
+        # Warm up the visual backbone and cache the image feature on frame 0
+        self._get_image_feature(inference_state, frame_idx=0, batch_size=1)
+        return inference_state
+
+    @classmethod
+    def from_pretrained(cls, model_id: str, **kwargs) -> "SAM2VideoPredictor":
+        """
+        Load a pretrained model from the Hugging Face hub.
+
+        Arguments:
+          model_id (str): The Hugging Face repository ID.
+          **kwargs: Additional arguments to pass to the model constructor.
+
+        Returns:
+          (SAM2VideoPredictor): The loaded model.
+        """
+        from sam2.build_sam import build_sam2_video_predictor_hf
+
+        sam_model = build_sam2_video_predictor_hf(model_id, **kwargs)
+        return sam_model
+
+    def _obj_id_to_idx(self, inference_state, obj_id):
+        """Map client-side object id to model-side object index."""
+        obj_idx = inference_state["obj_id_to_idx"].get(obj_id, None)
+        if obj_idx is not None:
+            return obj_idx
+
+        # This is a new object id not sent to the server before. We only allow adding
+        # new objects *before* the tracking starts.
+        allow_new_object = not inference_state["tracking_has_started"]
+        if allow_new_object:
+            # get the next object slot
+            obj_idx = len(inference_state["obj_id_to_idx"])
+            inference_state["obj_id_to_idx"][obj_id] = obj_idx
+            inference_state["obj_idx_to_id"][obj_idx] = obj_id
+            inference_state["obj_ids"] = list(inference_state["obj_id_to_idx"])
+            # set up input and output structures for this object
+            inference_state["point_inputs_per_obj"][obj_idx] = {}
+            inference_state["mask_inputs_per_obj"][obj_idx] = {}
+            inference_state["output_dict_per_obj"][obj_idx] = {
+                "cond_frame_outputs": {},  # dict containing {frame_idx: <out>}
+                "non_cond_frame_outputs": {},  # dict containing {frame_idx: <out>}
+            }
+            inference_state["temp_output_dict_per_obj"][obj_idx] = {
+                "cond_frame_outputs": {},  # dict containing {frame_idx: <out>}
+                "non_cond_frame_outputs": {},  # dict containing {frame_idx: <out>}
+            }
+            return obj_idx
+        else:
+            raise RuntimeError(
+                f"Cannot add new object id {obj_id} after tracking starts. "
+                f"All existing object ids: {inference_state['obj_ids']}. "
+                f"Please call 'reset_state' to restart from scratch."
+            )
+
+    def _obj_idx_to_id(self, inference_state, obj_idx):
+        """Map model-side object index to client-side object id."""
+        return inference_state["obj_idx_to_id"][obj_idx]
+
+    def _get_obj_num(self, inference_state):
+        """Get the total number of unique object ids received so far in this session."""
+        return len(inference_state["obj_idx_to_id"])
+
+    @torch.inference_mode()
+    def add_new_points_or_box(
+        self,
+        inference_state,
+        frame_idx,
+        obj_id,
+        points=None,
+        labels=None,
+        clear_old_points=True,
+        normalize_coords=True,
+        box=None,
+    ):
+        """Add new points to a frame."""
+        obj_idx = self._obj_id_to_idx(inference_state, obj_id)
+        point_inputs_per_frame = inference_state["point_inputs_per_obj"][obj_idx]
+        mask_inputs_per_frame = inference_state["mask_inputs_per_obj"][obj_idx]
+
+        if (points is not None) != (labels is not None):
+            raise ValueError("points and labels must be provided together")
+        if points is None and box is None:
+            raise ValueError("at least one of points or box must be provided as input")
+
+        if points is None:
+            points = torch.zeros(0, 2, dtype=torch.float32)
+        elif not isinstance(points, torch.Tensor):
+            points = torch.tensor(points, dtype=torch.float32)
+        if labels is None:
+            labels = torch.zeros(0, dtype=torch.int32)
+        elif not isinstance(labels, torch.Tensor):
+            labels = torch.tensor(labels, dtype=torch.int32)
+        if points.dim() == 2:
+            points = points.unsqueeze(0)  # add batch dimension
+        if labels.dim() == 1:
+            labels = labels.unsqueeze(0)  # add batch dimension
+
+        # If `box` is provided, we add it as the first two points with labels 2 and 3
