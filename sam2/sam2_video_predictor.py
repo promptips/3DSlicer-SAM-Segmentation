@@ -866,3 +866,110 @@ class SAM2VideoPredictor(SAM2Base):
         storage_device = inference_state["storage_device"]
         maskmem_features = current_out["maskmem_features"]
         if maskmem_features is not None:
+            maskmem_features = maskmem_features.to(torch.bfloat16)
+            maskmem_features = maskmem_features.to(storage_device, non_blocking=True)
+        pred_masks_gpu = current_out["pred_masks"]
+        # potentially fill holes in the predicted masks
+        try:
+            from sam2.utils.misc import fill_holes_in_mask_scores
+            if self.fill_hole_area > 0:
+                pred_masks_gpu = fill_holes_in_mask_scores(
+                    pred_masks_gpu, self.fill_hole_area
+                )
+        except Exception as e:
+            # Skip the post-processing step if the CUDA kernel fails
+            warnings.warn(
+                f"{e}\n\nSkipping the post-processing step due to the error above. You can "
+                "still use SAM 2 and it's OK to ignore the error above, although some post-processing "
+                "functionality may be limited (which doesn't affect the results in most cases; see "
+                "https://github.com/facebookresearch/segment-anything-2/blob/main/INSTALL.md).",
+                category=UserWarning,
+                stacklevel=2,
+            )
+        
+        pred_masks = pred_masks_gpu.to(storage_device, non_blocking=True)
+        # "maskmem_pos_enc" is the same across frames, so we only need to store one copy of it
+        maskmem_pos_enc = self._get_maskmem_pos_enc(inference_state, current_out)
+        # object pointer is a small tensor, so we always keep it on GPU memory for fast access
+        obj_ptr = current_out["obj_ptr"]
+        # make a compact version of this frame's output to reduce the state size
+        compact_current_out = {
+            "maskmem_features": maskmem_features,
+            "maskmem_pos_enc": maskmem_pos_enc,
+            "pred_masks": pred_masks,
+            "obj_ptr": obj_ptr,
+        }
+        return compact_current_out, pred_masks_gpu
+
+    def _run_memory_encoder(
+        self, inference_state, frame_idx, batch_size, high_res_masks, is_mask_from_pts
+    ):
+        """
+        Run the memory encoder on `high_res_masks`. This is usually after applying
+        non-overlapping constraints to object scores. Since their scores changed, their
+        memory also need to be computed again with the memory encoder.
+        """
+        # Retrieve correct image features
+        _, _, current_vision_feats, _, feat_sizes = self._get_image_feature(
+            inference_state, frame_idx, batch_size
+        )
+        maskmem_features, maskmem_pos_enc = self._encode_new_memory(
+            current_vision_feats=current_vision_feats,
+            feat_sizes=feat_sizes,
+            pred_masks_high_res=high_res_masks,
+            is_mask_from_pts=is_mask_from_pts,
+        )
+
+        # optionally offload the output to CPU memory to save GPU space
+        storage_device = inference_state["storage_device"]
+        maskmem_features = maskmem_features.to(torch.bfloat16)
+        maskmem_features = maskmem_features.to(storage_device, non_blocking=True)
+        # "maskmem_pos_enc" is the same across frames, so we only need to store one copy of it
+        maskmem_pos_enc = self._get_maskmem_pos_enc(
+            inference_state, {"maskmem_pos_enc": maskmem_pos_enc}
+        )
+        return maskmem_features, maskmem_pos_enc
+
+    def _get_maskmem_pos_enc(self, inference_state, current_out):
+        """
+        `maskmem_pos_enc` is the same across frames and objects, so we cache it as
+        a constant in the inference session to reduce session storage size.
+        """
+        model_constants = inference_state["constants"]
+        # "out_maskmem_pos_enc" should be either a list of tensors or None
+        out_maskmem_pos_enc = current_out["maskmem_pos_enc"]
+        if out_maskmem_pos_enc is not None:
+            if "maskmem_pos_enc" not in model_constants:
+                assert isinstance(out_maskmem_pos_enc, list)
+                # only take the slice for one object, since it's same across objects
+                maskmem_pos_enc = [x[0:1].clone() for x in out_maskmem_pos_enc]
+                model_constants["maskmem_pos_enc"] = maskmem_pos_enc
+            else:
+                maskmem_pos_enc = model_constants["maskmem_pos_enc"]
+            # expand the cached maskmem_pos_enc to the actual batch size
+            batch_size = out_maskmem_pos_enc[0].size(0)
+            expanded_maskmem_pos_enc = [
+                x.expand(batch_size, -1, -1, -1) for x in maskmem_pos_enc
+            ]
+        else:
+            expanded_maskmem_pos_enc = None
+        return expanded_maskmem_pos_enc
+
+    def _clear_non_cond_mem_around_input(self, inference_state, frame_idx):
+        """
+        Remove the non-conditioning memory around the input frame. When users provide
+        correction clicks, the surrounding frames' non-conditioning memories can still
+        contain outdated object appearance information and could confuse the model.
+
+        This method clears those non-conditioning memories surrounding the interacted
+        frame to avoid giving the model both old and new information about the object.
+        """
+        r = self.memory_temporal_stride_for_eval
+        frame_idx_begin = frame_idx - r * self.num_maskmem
+        frame_idx_end = frame_idx + r * self.num_maskmem
+        output_dict = inference_state["output_dict"]
+        non_cond_frame_outputs = output_dict["non_cond_frame_outputs"]
+        for t in range(frame_idx_begin, frame_idx_end + 1):
+            non_cond_frame_outputs.pop(t, None)
+            for obj_output_dict in inference_state["output_dict_per_obj"].values():
+                obj_output_dict["non_cond_frame_outputs"].pop(t, None)
