@@ -512,3 +512,114 @@ class SAM2VideoPredictor(SAM2Base):
                     align_corners=False,
                 )
                 consolidated_pred_masks[obj_idx : obj_idx + 1] = resized_obj_mask
+            consolidated_out["obj_ptr"][obj_idx : obj_idx + 1] = out["obj_ptr"]
+
+        # Optionally, apply non-overlapping constraints on the consolidated scores
+        # and rerun the memory encoder
+        if run_mem_encoder:
+            device = inference_state["device"]
+            high_res_masks = torch.nn.functional.interpolate(
+                consolidated_out["pred_masks"].to(device, non_blocking=True),
+                size=(self.image_size, self.image_size),
+                mode="bilinear",
+                align_corners=False,
+            )
+            if self.non_overlap_masks_for_mem_enc:
+                high_res_masks = self._apply_non_overlapping_constraints(high_res_masks)
+            maskmem_features, maskmem_pos_enc = self._run_memory_encoder(
+                inference_state=inference_state,
+                frame_idx=frame_idx,
+                batch_size=batch_size,
+                high_res_masks=high_res_masks,
+                is_mask_from_pts=True,  # these frames are what the user interacted with
+            )
+            consolidated_out["maskmem_features"] = maskmem_features
+            consolidated_out["maskmem_pos_enc"] = maskmem_pos_enc
+
+        return consolidated_out
+
+    def _get_empty_mask_ptr(self, inference_state, frame_idx):
+        """Get a dummy object pointer based on an empty mask on the current frame."""
+        # A dummy (empty) mask with a single object
+        batch_size = 1
+        mask_inputs = torch.zeros(
+            (batch_size, 1, self.image_size, self.image_size),
+            dtype=torch.float32,
+            device=inference_state["device"],
+        )
+
+        # Retrieve correct image features
+        (
+            _,
+            _,
+            current_vision_feats,
+            current_vision_pos_embeds,
+            feat_sizes,
+        ) = self._get_image_feature(inference_state, frame_idx, batch_size)
+
+        # Feed the empty mask and image feature above to get a dummy object pointer
+        current_out = self.track_step(
+            frame_idx=frame_idx,
+            is_init_cond_frame=True,
+            current_vision_feats=current_vision_feats,
+            current_vision_pos_embeds=current_vision_pos_embeds,
+            feat_sizes=feat_sizes,
+            point_inputs=None,
+            mask_inputs=mask_inputs,
+            output_dict={},
+            num_frames=inference_state["num_frames"],
+            track_in_reverse=False,
+            run_mem_encoder=False,
+            prev_sam_mask_logits=None,
+        )
+        return current_out["obj_ptr"]
+
+    @torch.inference_mode()
+    def propagate_in_video_preflight(self, inference_state):
+        """Prepare inference_state and consolidate temporary outputs before tracking."""
+        # Tracking has started and we don't allow adding new objects until session is reset.
+        inference_state["tracking_has_started"] = True
+        batch_size = self._get_obj_num(inference_state)
+
+        # Consolidate per-object temporary outputs in "temp_output_dict_per_obj" and
+        # add them into "output_dict".
+        temp_output_dict_per_obj = inference_state["temp_output_dict_per_obj"]
+        output_dict = inference_state["output_dict"]
+        # "consolidated_frame_inds" contains indices of those frames where consolidated
+        # temporary outputs have been added (either in this call or any previous calls
+        # to `propagate_in_video_preflight`).
+        consolidated_frame_inds = inference_state["consolidated_frame_inds"]
+        for is_cond in [False, True]:
+            # Separately consolidate conditioning and non-conditioning temp outputs
+            storage_key = "cond_frame_outputs" if is_cond else "non_cond_frame_outputs"
+            # Find all the frames that contain temporary outputs for any objects
+            # (these should be the frames that have just received clicks for mask inputs
+            # via `add_new_points_or_box` or `add_new_mask`)
+            temp_frame_inds = set()
+            for obj_temp_output_dict in temp_output_dict_per_obj.values():
+                temp_frame_inds.update(obj_temp_output_dict[storage_key].keys())
+            consolidated_frame_inds[storage_key].update(temp_frame_inds)
+            # consolidate the temporary output across all objects on this frame
+            for frame_idx in temp_frame_inds:
+                consolidated_out = self._consolidate_temp_output_across_obj(
+                    inference_state, frame_idx, is_cond=is_cond, run_mem_encoder=True
+                )
+                # merge them into "output_dict" and also create per-object slices
+                output_dict[storage_key][frame_idx] = consolidated_out
+                self._add_output_per_object(
+                    inference_state, frame_idx, consolidated_out, storage_key
+                )
+                clear_non_cond_mem = self.clear_non_cond_mem_around_input and (
+                    self.clear_non_cond_mem_for_multi_obj or batch_size <= 1
+                )
+                if clear_non_cond_mem:
+                    # clear non-conditioning memory of the surrounding frames
+                    self._clear_non_cond_mem_around_input(inference_state, frame_idx)
+
+            # clear temporary outputs in `temp_output_dict_per_obj`
+            for obj_temp_output_dict in temp_output_dict_per_obj.values():
+                obj_temp_output_dict[storage_key].clear()
+
+        # edge case: if an output is added to "cond_frame_outputs", we remove any prior
+        # output on the same frame in "non_cond_frame_outputs"
+        for frame_idx in output_dict["cond_frame_outputs"]:
