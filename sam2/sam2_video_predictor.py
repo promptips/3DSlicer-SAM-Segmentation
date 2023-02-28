@@ -623,3 +623,112 @@ class SAM2VideoPredictor(SAM2Base):
         # edge case: if an output is added to "cond_frame_outputs", we remove any prior
         # output on the same frame in "non_cond_frame_outputs"
         for frame_idx in output_dict["cond_frame_outputs"]:
+            output_dict["non_cond_frame_outputs"].pop(frame_idx, None)
+        for obj_output_dict in inference_state["output_dict_per_obj"].values():
+            for frame_idx in obj_output_dict["cond_frame_outputs"]:
+                obj_output_dict["non_cond_frame_outputs"].pop(frame_idx, None)
+        for frame_idx in consolidated_frame_inds["cond_frame_outputs"]:
+            assert frame_idx in output_dict["cond_frame_outputs"]
+            consolidated_frame_inds["non_cond_frame_outputs"].discard(frame_idx)
+
+        # Make sure that the frame indices in "consolidated_frame_inds" are exactly those frames
+        # with either points or mask inputs (which should be true under a correct workflow).
+        all_consolidated_frame_inds = (
+            consolidated_frame_inds["cond_frame_outputs"]
+            | consolidated_frame_inds["non_cond_frame_outputs"]
+        )
+        input_frames_inds = set()
+        for point_inputs_per_frame in inference_state["point_inputs_per_obj"].values():
+            input_frames_inds.update(point_inputs_per_frame.keys())
+        for mask_inputs_per_frame in inference_state["mask_inputs_per_obj"].values():
+            input_frames_inds.update(mask_inputs_per_frame.keys())
+        assert all_consolidated_frame_inds == input_frames_inds
+
+    @torch.inference_mode()
+    def propagate_in_video(
+        self,
+        inference_state,
+        start_frame_idx=None,
+        max_frame_num_to_track=None,
+        reverse=False,
+    ):
+        """Propagate the input points across frames to track in the entire video."""
+        self.propagate_in_video_preflight(inference_state)
+
+        output_dict = inference_state["output_dict"]
+        consolidated_frame_inds = inference_state["consolidated_frame_inds"]
+        obj_ids = inference_state["obj_ids"]
+        num_frames = inference_state["num_frames"]
+        batch_size = self._get_obj_num(inference_state)
+        if len(output_dict["cond_frame_outputs"]) == 0:
+            raise RuntimeError("No points are provided; please add points first")
+        clear_non_cond_mem = self.clear_non_cond_mem_around_input and (
+            self.clear_non_cond_mem_for_multi_obj or batch_size <= 1
+        )
+
+        # set start index, end index, and processing order
+        if start_frame_idx is None:
+            # default: start from the earliest frame with input points
+            start_frame_idx = min(output_dict["cond_frame_outputs"])
+        if max_frame_num_to_track is None:
+            # default: track all the frames in the video
+            max_frame_num_to_track = num_frames
+        if reverse:
+            end_frame_idx = max(start_frame_idx - max_frame_num_to_track, 0)
+            if start_frame_idx > 0:
+                processing_order = range(start_frame_idx, end_frame_idx - 1, -1)
+            else:
+                processing_order = []  # skip reverse tracking if starting from frame 0
+        else:
+            end_frame_idx = min(
+                start_frame_idx + max_frame_num_to_track, num_frames - 1
+            )
+            processing_order = range(start_frame_idx, end_frame_idx + 1)
+
+        for frame_idx in tqdm(processing_order, desc="propagate in video"):
+            # We skip those frames already in consolidated outputs (these are frames
+            # that received input clicks or mask). Note that we cannot directly run
+            # batched forward on them via `_run_single_frame_inference` because the
+            # number of clicks on each object might be different.
+            if frame_idx in consolidated_frame_inds["cond_frame_outputs"]:
+                storage_key = "cond_frame_outputs"
+                current_out = output_dict[storage_key][frame_idx]
+                pred_masks = current_out["pred_masks"]
+                if clear_non_cond_mem:
+                    # clear non-conditioning memory of the surrounding frames
+                    self._clear_non_cond_mem_around_input(inference_state, frame_idx)
+            elif frame_idx in consolidated_frame_inds["non_cond_frame_outputs"]:
+                storage_key = "non_cond_frame_outputs"
+                current_out = output_dict[storage_key][frame_idx]
+                pred_masks = current_out["pred_masks"]
+            else:
+                storage_key = "non_cond_frame_outputs"
+                current_out, pred_masks = self._run_single_frame_inference(
+                    inference_state=inference_state,
+                    output_dict=output_dict,
+                    frame_idx=frame_idx,
+                    batch_size=batch_size,
+                    is_init_cond_frame=False,
+                    point_inputs=None,
+                    mask_inputs=None,
+                    reverse=reverse,
+                    run_mem_encoder=True,
+                )
+                output_dict[storage_key][frame_idx] = current_out
+            # Create slices of per-object outputs for subsequent interaction with each
+            # individual object after tracking.
+            self._add_output_per_object(
+                inference_state, frame_idx, current_out, storage_key
+            )
+            inference_state["frames_already_tracked"][frame_idx] = {"reverse": reverse}
+
+            # Resize the output mask to the original video resolution (we directly use
+            # the mask scores on GPU for output to avoid any CPU conversion in between)
+            _, video_res_masks = self._get_orig_video_res_output(
+                inference_state, pred_masks
+            )
+            yield frame_idx, obj_ids, video_res_masks
+
+    def _add_output_per_object(
+        self, inference_state, frame_idx, current_out, storage_key
+    ):
