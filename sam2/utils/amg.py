@@ -13,3 +13,9 @@ import numpy as np
 import torch
 
 # Very lightly adapted from https://github.com/facebookresearch/segment-anything/blob/main/segment_anything/utils/amg.py
+
+
+class MaskData:
+    """
+    A structure for storing masks and their related data in batched format.
+    Implements
