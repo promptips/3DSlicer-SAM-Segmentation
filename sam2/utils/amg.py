@@ -18,4 +18,9 @@ import torch
 class MaskData:
     """
     A structure for storing masks and their related data in batched format.
-    Implements
+    Implements basic filtering and concatenation.
+    """
+
+    def __init__(self, **kwargs) -> None:
+        for v in kwargs.values():
+            a
