@@ -29,4 +29,6 @@ class MaskData:
         self._stats = dict(**kwargs)
 
     def __setitem__(self, key: str, item: Any) -> None:
-        assert i
+        assert isinstance(
+            item, (list, np.ndarray, torch.Tensor)
+        ), "MaskData only supports list, numpy arrays, and 
