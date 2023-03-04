@@ -23,4 +23,6 @@ class MaskData:
 
     def __init__(self, **kwargs) -> None:
         for v in kwargs.values():
-            a
+            assert isinstance(
+                v, (list, np.ndarray, torch.Tensor)
+            ), "MaskData only supports list, numpy arrays, and torch 
