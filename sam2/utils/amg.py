@@ -35,4 +35,9 @@ class MaskData:
         self._stats[key] = item
 
     def __delitem__(self, key: str) -> None:
-   
+        del self._stats[key]
+
+    def __getitem__(self, key: str) -> Any:
+        return self._stats[key]
+
+    
