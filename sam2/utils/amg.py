@@ -40,4 +40,7 @@ class MaskData:
     def __getitem__(self, key: str) -> Any:
         return self._stats[key]
 
-    
+    def items(self) -> ItemsView[str, Any]:
+        return self._stats.items()
+
+    def filter(self, keep: torch.Tensor) -> None
