@@ -47,4 +47,5 @@ class MaskData:
         for k, v in self._stats.items():
             if v is None:
                 self._stats[k] = None
-            elif 
+            elif isinstance(v, torch.Tensor):
+                self._stats[k] = v[torch.as_tensor(keep, device=v.device)
