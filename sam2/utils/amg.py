@@ -43,4 +43,8 @@ class MaskData:
     def items(self) -> ItemsView[str, Any]:
         return self._stats.items()
 
-    def filter(self, keep: torch.Tensor) -> None
+    def filter(self, keep: torch.Tensor) -> None:
+        for k, v in self._stats.items():
+            if v is None:
+                self._stats[k] = None
+            elif 
