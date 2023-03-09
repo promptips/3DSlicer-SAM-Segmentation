@@ -51,4 +51,5 @@ class MaskData:
                 self._stats[k] = v[torch.as_tensor(keep, device=v.device)]
             elif isinstance(v, np.ndarray):
                 self._stats[k] = v[keep.detach().cpu().numpy()]
-            elif
+            elif isinstance(v, list) and keep.dtype == torch.bool:
+                self._stats[k] = [a for i, a in enumerate(
