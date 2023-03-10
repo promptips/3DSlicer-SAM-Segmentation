@@ -63,4 +63,6 @@ class MaskData:
             if k not in self._stats or self._stats[k] is None:
                 self._stats[k] = deepcopy(v)
             elif isinstance(v, torch.Tensor):
-                s
+                self._stats[k] = torch.cat([self._stats[k], v], dim=0)
+            elif isinstance(v, np.ndarray):
+ 
