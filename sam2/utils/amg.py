@@ -58,4 +58,6 @@ class MaskData:
             else:
                 raise TypeError(f"MaskData key {k} has an unsupported type {type(v)}.")
 
-    def cat(sel
+    def cat(self, new_stats: "MaskData") -> None:
+        for k, v in new_stats.items():
+            if k not in self._stats or self._stat
