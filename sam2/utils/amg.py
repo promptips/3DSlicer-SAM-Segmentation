@@ -67,4 +67,6 @@ class MaskData:
             elif isinstance(v, np.ndarray):
                 self._stats[k] = np.concatenate([self._stats[k], v], axis=0)
             elif isinstance(v, list):
-      
+                self._stats[k] = self._stats[k] + deepcopy(v)
+            else:
+                raise TypeError(f"MaskData k
