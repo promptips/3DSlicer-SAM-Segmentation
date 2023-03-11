@@ -65,4 +65,6 @@ class MaskData:
             elif isinstance(v, torch.Tensor):
                 self._stats[k] = torch.cat([self._stats[k], v], dim=0)
             elif isinstance(v, np.ndarray):
- 
+                self._stats[k] = np.concatenate([self._stats[k], v], axis=0)
+            elif isinstance(v, list):
+      
