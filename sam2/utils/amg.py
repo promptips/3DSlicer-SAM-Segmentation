@@ -69,4 +69,7 @@ class MaskData:
             elif isinstance(v, list):
                 self._stats[k] = self._stats[k] + deepcopy(v)
             else:
-                raise TypeError(f"MaskData k
+                raise TypeError(f"MaskData key {k} has an unsupported type {type(v)}.")
+
+    def to_numpy(self) -> None:
+        for k, v in self._stats.items():
