@@ -73,3 +73,5 @@ class MaskData:
 
     def to_numpy(self) -> None:
         for k, v in self._stats.items():
+            if isinstance(v, torch.Tensor):
+                self._stats[k] = v.float().detach().cpu()
