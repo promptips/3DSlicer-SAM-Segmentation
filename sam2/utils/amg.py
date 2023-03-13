@@ -74,4 +74,9 @@ class MaskData:
     def to_numpy(self) -> None:
         for k, v in self._stats.items():
             if isinstance(v, torch.Tensor):
-                self._stats[k] = v.float().detach().cpu()
+                self._stats[k] = v.float().detach().cpu().numpy()
+
+
+def is_box_near_crop_edge(
+    boxes: torch.Tensor, crop_box: List[int], orig_box: List[int], atol: float = 20.0
+) -> t
