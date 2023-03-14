@@ -79,4 +79,6 @@ class MaskData:
 
 def is_box_near_crop_edge(
     boxes: torch.Tensor, crop_box: List[int], orig_box: List[int], atol: float = 20.0
-) -> t
+) -> torch.Tensor:
+    """Filter masks at the edge of a crop, but not at the edge of the original image."""
+    crop_box_torch = torch.as_tenso
