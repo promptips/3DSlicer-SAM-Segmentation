@@ -84,4 +84,5 @@ def is_box_near_crop_edge(
     crop_box_torch = torch.as_tensor(crop_box, dtype=torch.float, device=boxes.device)
     orig_box_torch = torch.as_tensor(orig_box, dtype=torch.float, device=boxes.device)
     boxes = uncrop_boxes_xyxy(boxes, crop_box).float()
-    near
+    near_crop_edge = torch.isclose(boxes, crop_box_torch[None, :], atol=atol, rtol=0)
+    near_image_edge = torch.
