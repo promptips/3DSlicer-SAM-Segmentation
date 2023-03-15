@@ -82,4 +82,6 @@ def is_box_near_crop_edge(
 ) -> torch.Tensor:
     """Filter masks at the edge of a crop, but not at the edge of the original image."""
     crop_box_torch = torch.as_tensor(crop_box, dtype=torch.float, device=boxes.device)
-    orig_box_torch = torch.as_tensor(orig_box, dt
+    orig_box_torch = torch.as_tensor(orig_box, dtype=torch.float, device=boxes.device)
+    boxes = uncrop_boxes_xyxy(boxes, crop_box).float()
+    near
