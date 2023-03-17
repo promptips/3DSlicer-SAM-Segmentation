@@ -91,3 +91,6 @@ def is_box_near_crop_edge(
 
 
 def box_xyxy_to_xywh(box_xyxy: torch.Tensor) -> torch.Tensor:
+    box_xywh = deepcopy(box_xyxy)
+    box_xywh[2] = box_xywh[2] - box_xywh[0]
+    box_xywh[3] = box_xywh[3] - box_xywh
