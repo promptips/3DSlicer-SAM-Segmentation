@@ -93,4 +93,9 @@ def is_box_near_crop_edge(
 def box_xyxy_to_xywh(box_xyxy: torch.Tensor) -> torch.Tensor:
     box_xywh = deepcopy(box_xyxy)
     box_xywh[2] = box_xywh[2] - box_xywh[0]
-    box_xywh[3] = box_xywh[3] - box_xywh
+    box_xywh[3] = box_xywh[3] - box_xywh[1]
+    return box_xywh
+
+
+def batch_iterator(batch_size: int, *args) -> Generator[List[Any], None, None]:
+    assert len(args) > 0 and all(
