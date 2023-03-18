@@ -99,3 +99,5 @@ def box_xyxy_to_xywh(box_xyxy: torch.Tensor) -> torch.Tensor:
 
 def batch_iterator(batch_size: int, *args) -> Generator[List[Any], None, None]:
     assert len(args) > 0 and all(
+        len(a) == len(args[0]) for a in args
+    ), "Batched iteration must have inputs of all the sa
