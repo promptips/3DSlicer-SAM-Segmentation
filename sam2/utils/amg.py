@@ -102,4 +102,8 @@ def batch_iterator(batch_size: int, *args) -> Generator[List[Any], None, None]:
         len(a) == len(args[0]) for a in args
     ), "Batched iteration must have inputs of all the same size."
     n_batches = len(args[0]) // batch_size + int(len(args[0]) % batch_size != 0)
-    for b in range(n_batch
+    for b in range(n_batches):
+        yield [arg[b * batch_size : (b + 1) * batch_size] for arg in args]
+
+
+def mask_to_rle_pytorch(tensor: torch.Tensor)
