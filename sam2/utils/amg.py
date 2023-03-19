@@ -109,4 +109,8 @@ def batch_iterator(batch_size: int, *args) -> Generator[List[Any], None, None]:
 def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
     """
     Encodes masks to an uncompressed RLE, in the format expected by
-    p
+    pycoco tools.
+    """
+    # Put in fortran order and flatten h,w
+    b, h, w = tensor.shape
+    tensor = tensor.permute(0,
