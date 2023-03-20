@@ -113,4 +113,8 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
     """
     # Put in fortran order and flatten h,w
     b, h, w = tensor.shape
-    tensor = tensor.permute(0,
+    tensor = tensor.permute(0, 2, 1).flatten(1)
+
+    # Compute change indices
+    diff = tensor[:, 1:] ^ tensor[:, :-1]
+    change_indices = diff.nonzero()
