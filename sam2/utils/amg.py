@@ -125,4 +125,6 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
         cur_idxs = change_indices[change_indices[:, 0] == i, 1]
         cur_idxs = torch.cat(
             [
-                torch.tensor([0], dtype
+                torch.tensor([0], dtype=cur_idxs.dtype, device=cur_idxs.device),
+                cur_idxs + 1,
+                torch.tensor([h * w], dtype=cur_id
