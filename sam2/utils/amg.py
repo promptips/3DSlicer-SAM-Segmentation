@@ -127,4 +127,8 @@ def mask_to_rle_pytorch(tensor: torch.Tensor) -> List[Dict[str, Any]]:
             [
                 torch.tensor([0], dtype=cur_idxs.dtype, device=cur_idxs.device),
                 cur_idxs + 1,
-                torch.tensor([h * w], dtype=cur_id
+                torch.tensor([h * w], dtype=cur_idxs.dtype, device=cur_idxs.device),
+            ]
+        )
+        btw_idxs = cur_idxs[1:] - cur_idxs[:-1]
+    
