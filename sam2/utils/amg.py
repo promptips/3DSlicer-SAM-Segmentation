@@ -150,3 +150,9 @@ def rle_to_mask(rle: Dict[str, Any]) -> np.ndarray:
     mask = mask.reshape(w, h)
     return mask.transpose()  # Put in C order
 
+
+def area_from_rle(rle: Dict[str, Any]) -> int:
+    return sum(rle["counts"][1::2])
+
+
+def calculate_stability_score(
