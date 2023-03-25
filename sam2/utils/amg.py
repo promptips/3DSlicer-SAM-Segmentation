@@ -161,4 +161,7 @@ def calculate_stability_score(
     """
     Computes the stability score for a batch of masks. The stability
     score is the IoU between the binary masks obtained by thresholding
- 
+    the predicted mask logits at high and low values.
+    """
+    # One mask is always contained inside the other.
+    # Sa
