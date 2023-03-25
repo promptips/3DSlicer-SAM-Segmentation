@@ -156,3 +156,7 @@ def area_from_rle(rle: Dict[str, Any]) -> int:
 
 
 def calculate_stability_score(
+    masks: torch.Tensor, mask_threshold: float, threshold_offset: float
+) -> torch.Tensor:
+    """
+    Computes the stability 
