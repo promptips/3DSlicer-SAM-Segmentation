@@ -159,4 +159,6 @@ def calculate_stability_score(
     masks: torch.Tensor, mask_threshold: float, threshold_offset: float
 ) -> torch.Tensor:
     """
-    Computes the stability 
+    Computes the stability score for a batch of masks. The stability
+    score is the IoU between the binary masks obtained by thresholding
+ 
