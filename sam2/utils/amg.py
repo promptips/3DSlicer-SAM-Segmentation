@@ -164,4 +164,6 @@ def calculate_stability_score(
     the predicted mask logits at high and low values.
     """
     # One mask is always contained inside the other.
-    # Sa
+    # Save memory by preventing unnecessary cast to torch.int64
+    intersections = (
+        (masks > (mask_threshold + t
