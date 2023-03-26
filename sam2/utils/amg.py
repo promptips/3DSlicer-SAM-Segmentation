@@ -166,4 +166,8 @@ def calculate_stability_score(
     # One mask is always contained inside the other.
     # Save memory by preventing unnecessary cast to torch.int64
     intersections = (
-        (masks > (mask_threshold + t
+        (masks > (mask_threshold + threshold_offset))
+        .sum(-1, dtype=torch.int16)
+        .sum(-1, dtype=torch.int32)
+    )
+    unions = (
