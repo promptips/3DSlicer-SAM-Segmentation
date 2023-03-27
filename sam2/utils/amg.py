@@ -173,3 +173,9 @@ def calculate_stability_score(
     unions = (
         (masks > (mask_threshold - threshold_offset))
         .sum(-1, dtype=torch.int16)
+        .sum(-1, dtype=torch.int32)
+    )
+    return intersections / unions
+
+
+def build_point_grid(n_per_side: int) -> n
