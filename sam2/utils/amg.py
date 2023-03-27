@@ -171,3 +171,5 @@ def calculate_stability_score(
         .sum(-1, dtype=torch.int32)
     )
     unions = (
+        (masks > (mask_threshold - threshold_offset))
+        .sum(-1, dtype=torch.int16)
