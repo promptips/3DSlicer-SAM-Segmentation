@@ -178,4 +178,6 @@ def calculate_stability_score(
     return intersections / unions
 
 
-def build_point_grid(n_per_side: int) -> n
+def build_point_grid(n_per_side: int) -> np.ndarray:
+    """Generates a 2D grid of points evenly spaced in [0,1]x[0,1]."""
+    offset = 1 / (2 * 
