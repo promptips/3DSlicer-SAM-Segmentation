@@ -194,4 +194,6 @@ def build_all_layer_point_grids(
     """Generates point grids for all crop layers."""
     points_by_layer = []
     for i in range(n_layers + 1):
-        n_points
+        n_points = int(n_per_side / (scale_per_layer**i))
+        points_by_layer.append(build_point_grid(n_points))
+    retur
