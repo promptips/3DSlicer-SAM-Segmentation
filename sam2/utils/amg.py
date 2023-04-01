@@ -209,3 +209,9 @@ def generate_crop_boxes(
     crop_boxes, layer_idxs = [], []
     im_h, im_w = im_size
     short_side = min(im_h, im_w)
+
+    # Original image
+    crop_boxes.append([0, 0, im_w, im_h])
+    layer_idxs.append(0)
+
+    def crop_len(orig_l
