@@ -204,4 +204,8 @@ def generate_crop_boxes(
 ) -> Tuple[List[List[int]], List[int]]:
     """
     Generates a list of crop boxes of different sizes. Each layer
-    has (2*
+    has (2**i)**2 boxes for the ith layer.
+    """
+    crop_boxes, layer_idxs = [], []
+    im_h, im_w = im_size
+    short_side = min(im_h, im_w)
