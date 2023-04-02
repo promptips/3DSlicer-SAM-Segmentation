@@ -219,4 +219,7 @@ def generate_crop_boxes(
 
     for i_layer in range(n_layers):
         n_crops_per_side = 2 ** (i_layer + 1)
-        overlap = int(overlap_ratio * short_si
+        overlap = int(overlap_ratio * short_side * (2 / n_crops_per_side))
+
+        crop_w = crop_len(im_w, n_crops_per_side, overlap)
+        crop_h = crop_len(im_h, 
