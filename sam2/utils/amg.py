@@ -214,4 +214,7 @@ def generate_crop_boxes(
     crop_boxes.append([0, 0, im_w, im_h])
     layer_idxs.append(0)
 
-    def crop_len(orig_l
+    def crop_len(orig_len, n_crops, overlap):
+        return int(math.ceil((overlap * (n_crops - 1) + orig_len) / n_crops))
+
+    for i
