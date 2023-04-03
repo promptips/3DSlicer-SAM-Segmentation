@@ -227,4 +227,6 @@ def generate_crop_boxes(
         crop_box_x0 = [int((crop_w - overlap) * i) for i in range(n_crops_per_side)]
         crop_box_y0 = [int((crop_h - overlap) * i) for i in range(n_crops_per_side)]
 
-        # Cr
+        # Crops in XYWH format
+        for x0, y0 in product(crop_box_x0, crop_box_y0):
+            box = [x0, y0, min(x
