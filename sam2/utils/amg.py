@@ -231,4 +231,9 @@ def generate_crop_boxes(
         for x0, y0 in product(crop_box_x0, crop_box_y0):
             box = [x0, y0, min(x0 + crop_w, im_w), min(y0 + crop_h, im_h)]
             crop_boxes.append(box)
-            layer_idxs.append(
+            layer_idxs.append(i_layer + 1)
+
+    return crop_boxes, layer_idxs
+
+
+def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) ->
