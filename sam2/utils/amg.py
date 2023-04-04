@@ -229,4 +229,6 @@ def generate_crop_boxes(
 
         # Crops in XYWH format
         for x0, y0 in product(crop_box_x0, crop_box_y0):
-            box = [x0, y0, min(x
+            box = [x0, y0, min(x0 + crop_w, im_w), min(y0 + crop_h, im_h)]
+            crop_boxes.append(box)
+            layer_idxs.append(
