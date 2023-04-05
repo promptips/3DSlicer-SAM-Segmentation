@@ -246,4 +246,7 @@ def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
 
 
 def uncrop_points(points: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
-    x0, y0, _, _ = crop_bo
+    x0, y0, _, _ = crop_box
+    offset = torch.tensor([[x0, y0]], device=points.device)
+    # Check if points has a channel dimension
+    if l
