@@ -236,4 +236,7 @@ def generate_crop_boxes(
     return crop_boxes, layer_idxs
 
 
-def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) ->
+def uncrop_boxes_xyxy(boxes: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
+    x0, y0, _, _ = crop_box
+    offset = torch.tensor([[x0, y0, x0, y0]], device=boxes.device)
+    # Chec
