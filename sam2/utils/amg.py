@@ -255,4 +255,6 @@ def uncrop_points(points: torch.Tensor, crop_box: List[int]) -> torch.Tensor:
 
 
 def uncrop_masks(
-    masks
+    masks: torch.Tensor, crop_box: List[int], orig_h: int, orig_w: int
+) -> torch.Tensor:
+    x0, y0, x1, y
