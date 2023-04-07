@@ -262,4 +262,9 @@ def uncrop_masks(
         return masks
     # Coordinate transform masks
     pad_x, pad_y = orig_w - (x1 - x0), orig_h - (y1 - y0)
-    pad = (x0, pad_x - x0
+    pad = (x0, pad_x - x0, y0, pad_y - y0)
+    return torch.nn.functional.pad(masks, pad, value=0)
+
+
+def remove_small_regions(
+    mask: np.ndarray, area_th
