@@ -259,4 +259,7 @@ def uncrop_masks(
 ) -> torch.Tensor:
     x0, y0, x1, y1 = crop_box
     if x0 == 0 and y0 == 0 and x1 == orig_w and y1 == orig_h:
-        return mask
+        return masks
+    # Coordinate transform masks
+    pad_x, pad_y = orig_w - (x1 - x0), orig_h - (y1 - y0)
+    pad = (x0, pad_x - x0
