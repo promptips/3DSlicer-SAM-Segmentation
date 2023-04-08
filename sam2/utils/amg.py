@@ -267,4 +267,7 @@ def uncrop_masks(
 
 
 def remove_small_regions(
-    mask: np.ndarray, area_th
+    mask: np.ndarray, area_thresh: float, mode: str
+) -> Tuple[np.ndarray, bool]:
+    """
+    Removes small disconnected regions an
