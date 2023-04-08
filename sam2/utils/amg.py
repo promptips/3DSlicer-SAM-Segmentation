@@ -277,4 +277,6 @@ def remove_small_regions(
 
     assert mode in ["holes", "islands"]
     correct_holes = mode == "holes"
-    working_mask = (correct_holes ^ mask).
+    working_mask = (correct_holes ^ mask).astype(np.uint8)
+    n_labels, regions, stats, _ = cv2.connectedComponentsWithStats(working_mask, 8)
+    sizes 
