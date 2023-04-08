@@ -270,4 +270,7 @@ def remove_small_regions(
     mask: np.ndarray, area_thresh: float, mode: str
 ) -> Tuple[np.ndarray, bool]:
     """
-    Removes small disconnected regions an
+    Removes small disconnected regions and holes in a mask. Returns the
+    mask and an indicator of if the mask has been modified.
+    """
+    import cv2  # t
