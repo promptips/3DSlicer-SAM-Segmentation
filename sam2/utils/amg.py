@@ -284,4 +284,6 @@ def remove_small_regions(
     if len(small_regions) == 0:
         return mask, False
     fill_labels = [0] + small_regions
-  
+    if not correct_holes:
+        fill_labels = [i for i in range(n_labels) if i not in fill_labels]
+     
