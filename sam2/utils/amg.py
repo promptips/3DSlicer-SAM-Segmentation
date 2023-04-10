@@ -288,4 +288,9 @@ def remove_small_regions(
         fill_labels = [i for i in range(n_labels) if i not in fill_labels]
         # If every region is below threshold, keep largest
         if len(fill_labels) == 0:
-            fill_labels = 
+            fill_labels = [int(np.argmax(sizes)) + 1]
+    mask = np.isin(regions, fill_labels)
+    return mask, True
+
+
+def coco_encode_rle(uncompressed_rle: D
