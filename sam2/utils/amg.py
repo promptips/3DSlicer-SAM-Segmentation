@@ -286,4 +286,6 @@ def remove_small_regions(
     fill_labels = [0] + small_regions
     if not correct_holes:
         fill_labels = [i for i in range(n_labels) if i not in fill_labels]
-     
+        # If every region is below threshold, keep largest
+        if len(fill_labels) == 0:
+            fill_labels = 
