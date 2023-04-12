@@ -302,4 +302,7 @@ def coco_encode_rle(uncompressed_rle: Dict[str, Any]) -> Dict[str, Any]:
     return rle
 
 
-def batched_mask_to_box(masks: torch.Tensor) -> 
+def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
+    """
+    Calculates boxes in XYXY format around masks. Return [0,0,0,0] for
+    an empty mask. Fo
