@@ -298,4 +298,8 @@ def coco_encode_rle(uncompressed_rle: Dict[str, Any]) -> Dict[str, Any]:
 
     h, w = uncompressed_rle["size"]
     rle = mask_utils.frPyObjects(uncompressed_rle, h, w)
-    rle["counts"] = rle["counts"].decod
+    rle["counts"] = rle["counts"].decode("utf-8")  # Necessary to serialize with json
+    return rle
+
+
+def batched_mask_to_box(masks: torch.Tensor) -> 
