@@ -296,4 +296,6 @@ def remove_small_regions(
 def coco_encode_rle(uncompressed_rle: Dict[str, Any]) -> Dict[str, Any]:
     from pycocotools import mask as mask_utils  # type: ignore
 
-    h, w = uncompressed
+    h, w = uncompressed_rle["size"]
+    rle = mask_utils.frPyObjects(uncompressed_rle, h, w)
+    rle["counts"] = rle["counts"].decod
