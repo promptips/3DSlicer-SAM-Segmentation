@@ -309,4 +309,9 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     """
     # torch.max below raises an error on empty inputs, just skip in this case
     if torch.numel(masks) == 0:
-        return torch.zeros(*masks.shape[:-2], 4, dev
+        return torch.zeros(*masks.shape[:-2], 4, device=masks.device)
+
+    # Normalize shape to CxHxW
+    shape = masks.shape
+    h, w = shape[-2:]
+    if le
