@@ -319,4 +319,6 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     else:
         masks = masks.unsqueeze(0)
 
-  
+    # Get top and bottom edges
+    in_height, _ = torch.max(masks, dim=-1)
+    in_height_coords = in_height * torch.arange(h
