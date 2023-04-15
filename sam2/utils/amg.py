@@ -314,4 +314,9 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     # Normalize shape to CxHxW
     shape = masks.shape
     h, w = shape[-2:]
-    if le
+    if len(shape) > 2:
+        masks = masks.flatten(0, -3)
+    else:
+        masks = masks.unsqueeze(0)
+
+  
