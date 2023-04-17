@@ -333,4 +333,6 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     in_width_coords = in_width_coords + w * (~in_width)
     left_edges, _ = torch.min(in_width_coords, dim=-1)
 
-    # If the mask is empty th
+    # If the mask is empty the right edge will be to the left of the left edge.
+    # Replace these boxes with [0, 0, 0, 0]
+    empty_filter = (right_edges 
