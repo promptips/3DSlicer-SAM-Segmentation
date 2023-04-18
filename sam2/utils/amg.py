@@ -335,4 +335,5 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
 
     # If the mask is empty the right edge will be to the left of the left edge.
     # Replace these boxes with [0, 0, 0, 0]
-    empty_filter = (right_edges 
+    empty_filter = (right_edges < left_edges) | (bottom_edges < top_edges)
+    out = torch.stack([left_edges, top_edges, right_edges, bottom_edges], dim=-1)
