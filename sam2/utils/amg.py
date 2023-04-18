@@ -341,4 +341,8 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
 
     # Return to original shape
     if len(shape) > 2:
-        ou
+        out = out.reshape(*shape[:-2], 4)
+    else:
+        out = out[0]
+
+    return out
