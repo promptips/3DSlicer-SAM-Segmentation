@@ -337,3 +337,8 @@ def batched_mask_to_box(masks: torch.Tensor) -> torch.Tensor:
     # Replace these boxes with [0, 0, 0, 0]
     empty_filter = (right_edges < left_edges) | (bottom_edges < top_edges)
     out = torch.stack([left_edges, top_edges, right_edges, bottom_edges], dim=-1)
+    out = out * (~empty_filter).unsqueeze(-1)
+
+    # Return to original shape
+    if len(shape) > 2:
+        ou
