@@ -9,4 +9,10 @@ import warnings
 from threading import Thread
 
 import numpy as np
-imp
+import torch
+from PIL import Image
+from tqdm import tqdm
+
+
+def get_sdpa_settings():
+    if torch
