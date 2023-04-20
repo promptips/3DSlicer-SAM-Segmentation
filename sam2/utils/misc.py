@@ -15,4 +15,6 @@ from tqdm import tqdm
 
 
 def get_sdpa_settings():
-    if torch
+    if torch.cuda.is_available():
+        old_gpu = torch.cuda.get_device_properties(0).major < 7
+        # only use Flash
