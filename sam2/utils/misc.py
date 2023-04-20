@@ -19,4 +19,6 @@ def get_sdpa_settings():
         old_gpu = torch.cuda.get_device_properties(0).major < 7
         # only use Flash Attention on Ampere (8.0) or newer GPUs
         use_flash_attn = torch.cuda.get_device_properties(0).major >= 8
-        if no
+        if not use_flash_attn:
+            warnings.warn(
+                "Flash Attention is disabled as it requires a GPU with Amp
