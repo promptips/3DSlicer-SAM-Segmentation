@@ -17,4 +17,6 @@ from tqdm import tqdm
 def get_sdpa_settings():
     if torch.cuda.is_available():
         old_gpu = torch.cuda.get_device_properties(0).major < 7
-        # only use Flash
+        # only use Flash Attention on Ampere (8.0) or newer GPUs
+        use_flash_attn = torch.cuda.get_device_properties(0).major >= 8
+        if no
