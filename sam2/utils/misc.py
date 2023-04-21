@@ -27,4 +27,7 @@ def get_sdpa_settings():
             )
         # keep math kernel for PyTorch versions before 2.2 (Flash Attention v2 is only
         # available on PyTorch 2.2+, while Flash Attention v1 cannot handle all cases)
-        pytorch_version = tuple(int(v) for v in 
+        pytorch_version = tuple(int(v) for v in torch.__version__.split(".")[:2])
+        if pytorch_version < (2, 2):
+            warnings.warn(
+          
