@@ -30,4 +30,5 @@ def get_sdpa_settings():
         pytorch_version = tuple(int(v) for v in torch.__version__.split(".")[:2])
         if pytorch_version < (2, 2):
             warnings.warn(
-          
+                f"You are using PyTorch {torch.__version__} without Flash Attention v2 support. "
+                "Consider
