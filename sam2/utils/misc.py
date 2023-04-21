@@ -24,4 +24,6 @@ def get_sdpa_settings():
                 "Flash Attention is disabled as it requires a GPU with Ampere (8.0) CUDA capability.",
                 category=UserWarning,
                 stacklevel=2,
-         
+            )
+        # keep math kernel for PyTorch versions before 2.2 (Flash Attention v2 is only
+       
