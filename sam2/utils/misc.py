@@ -31,4 +31,5 @@ def get_sdpa_settings():
         if pytorch_version < (2, 2):
             warnings.warn(
                 f"You are using PyTorch {torch.__version__} without Flash Attention v2 support. "
-                "Consider
+                "Consider upgrading to PyTorch 2.2+ for Flash Attention v2 (which could be faster).",
+                category=Us
