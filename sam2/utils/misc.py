@@ -35,4 +35,10 @@ def get_sdpa_settings():
                 category=UserWarning,
                 stacklevel=2,
             )
-        math_kernel_on = pytorch_version < (2, 2) o
+        math_kernel_on = pytorch_version < (2, 2) or not use_flash_attn
+    else:
+        old_gpu = True
+        use_flash_attn = False
+        math_kernel_on = True
+
+    return o
