@@ -41,4 +41,9 @@ def get_sdpa_settings():
         use_flash_attn = False
         math_kernel_on = True
 
-    return o
+    return old_gpu, use_flash_attn, math_kernel_on
+
+
+def get_connected_components(mask):
+    """
+    Get the connected components (
