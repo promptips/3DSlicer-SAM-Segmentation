@@ -46,4 +46,7 @@ def get_sdpa_settings():
 
 def get_connected_components(mask):
     """
-    Get the connected components (
+    Get the connected components (8-connectivity) of binary masks of shape (N, 1, H, W).
+
+    Inputs:
+    - mask: A binary mask tensor o
