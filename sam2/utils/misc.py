@@ -49,4 +49,8 @@ def get_connected_components(mask):
     Get the connected components (8-connectivity) of binary masks of shape (N, 1, H, W).
 
     Inputs:
-    - mask: A binary mask tensor o
+    - mask: A binary mask tensor of shape (N, 1, H, W), where 1 is foreground and 0 is
+            background.
+
+    Outputs:
+    - labels: A
