@@ -54,4 +54,6 @@ def get_connected_components(mask):
 
     Outputs:
     - labels: A tensor of shape (N, 1, H, W) containing the connected component labels
-              for foreground pixels and 0 for background pixe
+              for foreground pixels and 0 for background pixels.
+    - counts: A tensor of shape (N, 1, H, W) containing the area of the connected
+   
