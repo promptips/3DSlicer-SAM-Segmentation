@@ -60,4 +60,9 @@ def get_connected_components(mask):
     """
     from sam2 import _C
 
-    return _C.get_connected_com
+    return _C.get_connected_componnets(mask.to(torch.uint8).contiguous())
+
+
+def mask_to_box(masks: torch.Tensor):
+    """
+    compute bounding box 
