@@ -65,4 +65,10 @@ def get_connected_components(mask):
 
 def mask_to_box(masks: torch.Tensor):
     """
-    compute bounding box 
+    compute bounding box given an input mask
+
+    Inputs:
+    - masks: [B, 1, H, W] masks, dtype=torch.Tensor
+
+    Returns:
+    - box_coords: [B, 1, 4], c
