@@ -71,4 +71,7 @@ def mask_to_box(masks: torch.Tensor):
     - masks: [B, 1, H, W] masks, dtype=torch.Tensor
 
     Returns:
-    - box_coords: [B, 1, 4], c
+    - box_coords: [B, 1, 4], contains (x, y) coordinates of top left and bottom right box corners, dtype=torch.Tensor
+    """
+    B, _, h, w = masks.shape
+    de
