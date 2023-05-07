@@ -80,4 +80,5 @@ def mask_to_box(masks: torch.Tensor):
     grid_xs, grid_ys = torch.meshgrid(xs, ys, indexing="xy")
     grid_xs = grid_xs[None, None, ...].expand(B, 1, h, w)
     grid_ys = grid_ys[None, None, ...].expand(B, 1, h, w)
-    min_xs, _ = torch.min(torch.where(masks, grid_xs
+    min_xs, _ = torch.min(torch.where(masks, grid_xs, w).flatten(-2), dim=-1)
+    max_xs, _ = torch.max(torch.where(masks, grid_xs, -1).flatten(-2), di
