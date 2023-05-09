@@ -84,4 +84,9 @@ def mask_to_box(masks: torch.Tensor):
     max_xs, _ = torch.max(torch.where(masks, grid_xs, -1).flatten(-2), dim=-1)
     min_ys, _ = torch.min(torch.where(masks, grid_ys, h).flatten(-2), dim=-1)
     max_ys, _ = torch.max(torch.where(masks, grid_ys, -1).flatten(-2), dim=-1)
-    bbox_coords = torch.stack((min_xs, min_ys, max_
+    bbox_coords = torch.stack((min_xs, min_ys, max_xs, max_ys), dim=-1)
+
+    return bbox_coords
+
+
+def _load_img_as_tensor(img_path
