@@ -96,4 +96,6 @@ def _load_img_as_tensor(img_path, image_size):
         img_np = img_np / 255.0
     else:
         raise RuntimeError(f"Unknown image dtype: {img_np.dtype} on {img_path}")
-    img = torch.from_numpy(img_np).per
+    img = torch.from_numpy(img_np).permute(2, 0, 1)
+    video_width, video_height = img_pil.size  # the original video size
+    ret
