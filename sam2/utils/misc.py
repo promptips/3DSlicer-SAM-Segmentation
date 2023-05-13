@@ -95,4 +95,5 @@ def _load_img_as_tensor(img_path, image_size):
     if img_np.dtype == np.uint8:  # np.uint8 is expected for JPEG images
         img_np = img_np / 255.0
     else:
-     
+        raise RuntimeError(f"Unknown image dtype: {img_np.dtype} on {img_path}")
+    img = torch.from_numpy(img_np).per
