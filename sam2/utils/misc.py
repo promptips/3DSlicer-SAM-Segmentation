@@ -103,4 +103,10 @@ def _load_img_as_tensor(img_path, image_size):
 
 class AsyncVideoFrameLoader:
     """
-    A list of video frames to be load as
+    A list of video frames to be load asynchronously without blocking session start.
+    """
+
+    def __init__(
+        self,
+        img_paths,
+        image_s
