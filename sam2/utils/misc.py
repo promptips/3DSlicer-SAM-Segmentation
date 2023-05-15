@@ -109,4 +109,10 @@ class AsyncVideoFrameLoader:
     def __init__(
         self,
         img_paths,
-        image_s
+        image_size,
+        offload_video_to_cpu,
+        img_mean,
+        img_std,
+        compute_device,
+    ):
+        self.img_paths = img
