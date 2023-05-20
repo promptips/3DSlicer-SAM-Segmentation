@@ -115,4 +115,7 @@ class AsyncVideoFrameLoader:
         img_std,
         compute_device,
     ):
-        self.img_paths = img
+        self.img_paths = img_paths
+        self.image_size = image_size
+        self.offload_video_to_cpu = offload_video_to_cpu
+        self.img_mean = im
