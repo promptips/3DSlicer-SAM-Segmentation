@@ -121,4 +121,6 @@ class AsyncVideoFrameLoader:
         self.img_mean = img_mean
         self.img_std = img_std
         # items in `self.images` will be loaded asynchronously
-        self.images = [N
+        self.images = [None] * len(img_paths)
+        # catch and raise any exceptions in the async loading thread
+        self.excep
