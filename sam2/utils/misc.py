@@ -129,4 +129,6 @@ class AsyncVideoFrameLoader:
         self.video_width = None
         self.compute_device = compute_device
 
-        # load the first frame to fill video
+        # load the first frame to fill video_height and video_width and also
+        # to cache it (since it's most likely where the user will click)
+        self._
