@@ -123,4 +123,6 @@ class AsyncVideoFrameLoader:
         # items in `self.images` will be loaded asynchronously
         self.images = [None] * len(img_paths)
         # catch and raise any exceptions in the async loading thread
-        self.excep
+        self.exception = None
+        # video_height and video_width be filled when loading the first image
+        self.video_heig
