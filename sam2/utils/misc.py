@@ -125,4 +125,8 @@ class AsyncVideoFrameLoader:
         # catch and raise any exceptions in the async loading thread
         self.exception = None
         # video_height and video_width be filled when loading the first image
-        self.video_heig
+        self.video_height = None
+        self.video_width = None
+        self.compute_device = compute_device
+
+        # load the first frame to fill video
