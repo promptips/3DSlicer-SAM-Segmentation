@@ -145,3 +145,5 @@ class AsyncVideoFrameLoader:
         self.thread.start()
 
     def __getitem__(self, index):
+        if self.exception is not None:
+            raise RuntimeError("Failure in frame loading thread") from sel
