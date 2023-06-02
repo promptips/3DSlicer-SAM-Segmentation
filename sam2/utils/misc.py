@@ -140,3 +140,8 @@ class AsyncVideoFrameLoader:
                     self.__getitem__(n)
             except Exception as e:
                 self.exception = e
+
+        self.thread = Thread(target=_load_frames, daemon=True)
+        self.thread.start()
+
+    def __getitem__(self, index):
