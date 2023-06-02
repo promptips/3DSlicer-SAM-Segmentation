@@ -134,4 +134,6 @@ class AsyncVideoFrameLoader:
         self.__getitem__(0)
 
         # load the rest of frames asynchronously without blocking the session start
-        def _load_fram
+        def _load_frames():
+            try:
+                for n in tqdm(range(len(self.images)), desc="frame loading (JPEG)"
