@@ -136,4 +136,7 @@ class AsyncVideoFrameLoader:
         # load the rest of frames asynchronously without blocking the session start
         def _load_frames():
             try:
-                for n in tqdm(range(len(self.images)), desc="frame loading (JPEG)"
+                for n in tqdm(range(len(self.images)), desc="frame loading (JPEG)"):
+                    self.__getitem__(n)
+            except Exception as e:
+                self.exception = e
