@@ -155,4 +155,7 @@ class AsyncVideoFrameLoader:
         img, video_height, video_width = _load_img_as_tensor(
             self.img_paths[index], self.image_size
         )
-        self.video
+        self.video_height = video_height
+        self.video_width = video_width
+        # normalize by mean and std
+        img 
