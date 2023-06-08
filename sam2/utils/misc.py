@@ -158,4 +158,7 @@ class AsyncVideoFrameLoader:
         self.video_height = video_height
         self.video_width = video_width
         # normalize by mean and std
-        img 
+        img -= self.img_mean
+        img /= self.img_std
+        if not self.offload_video_to_cpu:
+           
