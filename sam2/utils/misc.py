@@ -152,4 +152,7 @@ class AsyncVideoFrameLoader:
         if img is not None:
             return img
 
-        img, video_height, v
+        img, video_height, video_width = _load_img_as_tensor(
+            self.img_paths[index], self.image_size
+        )
+        self.video
