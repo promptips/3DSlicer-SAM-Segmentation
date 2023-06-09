@@ -163,4 +163,13 @@ class AsyncVideoFrameLoader:
         if not self.offload_video_to_cpu:
             img = img.to(self.compute_device, non_blocking=True)
         self.images[index] = img
-        return
+        return img
+
+    def __len__(self):
+        return len(self.images)
+
+
+def load_video_frames(
+    video_path,
+    image_size,
+  
