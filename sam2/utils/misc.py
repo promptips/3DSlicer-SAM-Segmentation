@@ -186,4 +186,8 @@ def load_video_frames(
 
     You can load a frame asynchronously by setting `async_loading_frames` to `True`.
     """
-    if isinstance(video_path, str)
+    if isinstance(video_path, str) and os.path.isdir(video_path):
+        jpg_folder = video_path
+    else:
+        raise NotImplementedError(
+            "O
