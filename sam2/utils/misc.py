@@ -179,4 +179,6 @@ def load_video_frames(
     compute_device=torch.device("cuda"),
 ):
     """
-    Load the video frames from a directory of JPEG
+    Load the video frames from a directory of JPEG files ("<frame_index>.jpg" format).
+
+    The frames are resized to image_size x image_size and are loaded to GPU if
