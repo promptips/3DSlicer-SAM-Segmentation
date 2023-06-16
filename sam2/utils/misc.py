@@ -184,4 +184,6 @@ def load_video_frames(
     The frames are resized to image_size x image_size and are loaded to GPU if
     `offload_video_to_cpu` is `False` and to CPU if `offload_video_to_cpu` is `True`.
 
-    You can 
+    You can load a frame asynchronously by setting `async_loading_frames` to `True`.
+    """
+    if isinstance(video_path, str)
