@@ -182,3 +182,6 @@ def load_video_frames(
     Load the video frames from a directory of JPEG files ("<frame_index>.jpg" format).
 
     The frames are resized to image_size x image_size and are loaded to GPU if
+    `offload_video_to_cpu` is `False` and to CPU if `offload_video_to_cpu` is `True`.
+
+    You can 
