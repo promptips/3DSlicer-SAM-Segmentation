@@ -190,4 +190,5 @@ def load_video_frames(
         jpg_folder = video_path
     else:
         raise NotImplementedError(
-            "O
+            "Only JPEG frames are supported at this moment. For video files, you may use "
+            "ffmpeg (https://ffmpeg.org/) to 
