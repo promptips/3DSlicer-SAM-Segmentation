@@ -193,4 +193,6 @@ def load_video_frames(
             "Only JPEG frames are supported at this moment. For video files, you may use "
             "ffmpeg (https://ffmpeg.org/) to extract frames into a folder of JPEG files, such as \n"
             "```\n"
-            "ffmpeg -i <your_video>.mp
+            "ffmpeg -i <your_video>.mp4 -q:v 2 -start_number 0 <output_dir>/'%05d.jpg'\n"
+            "```\n"
+            "where `-q:v` generate
