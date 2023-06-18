@@ -191,4 +191,6 @@ def load_video_frames(
     else:
         raise NotImplementedError(
             "Only JPEG frames are supported at this moment. For video files, you may use "
-            "ffmpeg (https://ffmpeg.org/) to 
+            "ffmpeg (https://ffmpeg.org/) to extract frames into a folder of JPEG files, such as \n"
+            "```\n"
+            "ffmpeg -i <your_video>.mp
