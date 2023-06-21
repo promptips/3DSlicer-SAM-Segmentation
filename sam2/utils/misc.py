@@ -196,4 +196,10 @@ def load_video_frames(
             "ffmpeg -i <your_video>.mp4 -q:v 2 -start_number 0 <output_dir>/'%05d.jpg'\n"
             "```\n"
             "where `-q:v` generates high-quality JPEG frames and `-start_number 0` asks "
-            "ffmpeg to start the JPEG file from 00000.jp
+            "ffmpeg to start the JPEG file from 00000.jpg."
+        )
+
+    frame_names = [
+        p
+        for p in os.listdir(jpg_folder)
+        if os
