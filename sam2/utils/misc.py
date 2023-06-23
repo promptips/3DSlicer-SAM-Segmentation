@@ -202,4 +202,6 @@ def load_video_frames(
     frame_names = [
         p
         for p in os.listdir(jpg_folder)
-        if os
+        if os.path.splitext(p)[-1] in [".jpg", ".jpeg", ".JPG", ".JPEG"]
+    ]
+    frame_names.sort(key=lambda p: int(os.path.splitext(p)
