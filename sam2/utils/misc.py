@@ -210,4 +210,8 @@ def load_video_frames(
         raise RuntimeError(f"no images found in {jpg_folder}")
     img_paths = [os.path.join(jpg_folder, frame_name) for frame_name in frame_names]
     img_mean = torch.tensor(img_mean, dtype=torch.float32)[:, None, None]
-    img_std = torch.tensor(img_std, dtype=torch.f
+    img_std = torch.tensor(img_std, dtype=torch.float32)[:, None, None]
+
+    if async_loading_frames:
+        lazy_images = AsyncVideoFrameLoader(
+            img_paths,
