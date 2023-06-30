@@ -215,3 +215,8 @@ def load_video_frames(
     if async_loading_frames:
         lazy_images = AsyncVideoFrameLoader(
             img_paths,
+            image_size,
+            offload_video_to_cpu,
+            img_mean,
+            img_std,
+            compute_
