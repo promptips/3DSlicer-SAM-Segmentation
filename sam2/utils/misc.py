@@ -219,4 +219,8 @@ def load_video_frames(
             offload_video_to_cpu,
             img_mean,
             img_std,
-            compute_
+            compute_device,
+        )
+        return lazy_images, lazy_images.video_height, lazy_images.video_width
+
+    images = to
