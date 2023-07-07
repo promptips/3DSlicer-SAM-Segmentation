@@ -228,4 +228,6 @@ def load_video_frames(
         images[n], video_height, video_width = _load_img_as_tensor(img_path, image_size)
     if not offload_video_to_cpu:
         images = images.to(compute_device)
-        im
+        img_mean = img_mean.to(compute_device)
+        img_std = img_std.to(compute_device)
+    # normalize by mean and st
