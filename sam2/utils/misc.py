@@ -230,4 +230,10 @@ def load_video_frames(
         images = images.to(compute_device)
         img_mean = img_mean.to(compute_device)
         img_std = img_std.to(compute_device)
-    # normalize by mean and st
+    # normalize by mean and std
+    images -= img_mean
+    images /= img_std
+    return images, video_height, video_width
+
+
+def fill_holes
