@@ -236,4 +236,8 @@ def load_video_frames(
     return images, video_height, video_width
 
 
-def fill_holes
+def fill_holes_in_mask_scores(mask, max_area):
+    """
+    A post processor to fill small holes in mask scores with area under `max_area`.
+    """
+   
