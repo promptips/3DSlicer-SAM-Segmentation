@@ -241,4 +241,7 @@ def fill_holes_in_mask_scores(mask, max_area):
     A post processor to fill small holes in mask scores with area under `max_area`.
     """
     # Holes are those connected components in background with area <= self.max_area
-    # (back
+    # (background regions are those with mask scores <= 0)
+    assert max_area > 0, "max_area must be positive"
+
+   
