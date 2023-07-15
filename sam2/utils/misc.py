@@ -247,4 +247,5 @@ def fill_holes_in_mask_scores(mask, max_area):
     input_mask = mask
     try:
         labels, areas = get_connected_components(mask <= 0)
-        is_h
+        is_hole = (labels > 0) & (areas <= max_area)
+        # We fill holes with a small positive mask score (0.1) to 
