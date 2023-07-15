@@ -244,4 +244,7 @@ def fill_holes_in_mask_scores(mask, max_area):
     # (background regions are those with mask scores <= 0)
     assert max_area > 0, "max_area must be positive"
 
-   
+    input_mask = mask
+    try:
+        labels, areas = get_connected_components(mask <= 0)
+        is_h
