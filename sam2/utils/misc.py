@@ -253,4 +253,5 @@ def fill_holes_in_mask_scores(mask, max_area):
     except Exception as e:
         # Skip the post-processing step on removing small holes if the CUDA kernel fails
         warnings.warn(
-            f"{e}\n\nSkip
+            f"{e}\n\nSkipping the post-processing step due to the error above. You can "
+            "still use SAM 2 and it's OK to ignore the error
