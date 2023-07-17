@@ -251,4 +251,6 @@ def fill_holes_in_mask_scores(mask, max_area):
         # We fill holes with a small positive mask score (0.1) to change them to foreground.
         mask = torch.where(is_hole, 0.1, mask)
     except Exception as e:
-        # Skip t
+        # Skip the post-processing step on removing small holes if the CUDA kernel fails
+        warnings.warn(
+            f"{e}\n\nSkip
