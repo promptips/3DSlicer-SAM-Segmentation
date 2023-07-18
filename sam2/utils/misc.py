@@ -262,4 +262,8 @@ def fill_holes_in_mask_scores(mask, max_area):
         )
         mask = input_mask
 
-    return m
+    return mask
+
+
+def concat_points(old_point_inputs, new_points, new_labels):
+    """Add new points and labels to pre
