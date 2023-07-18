@@ -255,4 +255,5 @@ def fill_holes_in_mask_scores(mask, max_area):
         warnings.warn(
             f"{e}\n\nSkipping the post-processing step due to the error above. You can "
             "still use SAM 2 and it's OK to ignore the error above, although some post-processing "
-            "functionality may be limited (which doesn't affect the r
+            "functionality may be limited (which doesn't affect the results in most cases; see "
+            "https://github.com/facebookresearch/segment-anything-2/blob/main/INSTALL.md).",
