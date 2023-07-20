@@ -266,4 +266,6 @@ def fill_holes_in_mask_scores(mask, max_area):
 
 
 def concat_points(old_point_inputs, new_points, new_labels):
-    """Add new points and labels to pre
+    """Add new points and labels to previous point inputs (add at the end)."""
+    if old_point_inputs is None:
+        points, labels = new_points, new_labe
