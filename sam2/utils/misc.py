@@ -273,4 +273,4 @@ def concat_points(old_point_inputs, new_points, new_labels):
         points = torch.cat([old_point_inputs["point_coords"], new_points], dim=1)
         labels = torch.cat([old_point_inputs["point_labels"], new_labels], dim=1)
 
-    return {"point_coords": points, "poin
+    return {"point_coords": points, "point_labels": labels}
