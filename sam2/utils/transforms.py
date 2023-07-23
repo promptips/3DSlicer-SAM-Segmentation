@@ -93,3 +93,27 @@ class SAM2Transforms(nn.Module):
                 is_hole = (labels > 0) & (areas <= self.max_hole_area)
                 is_hole = is_hole.reshape_as(masks)
                 # We fill holes with a small positive mask score (10.0) to change them to foreground.
+                masks = torch.where(is_hole, self.mask_threshold + 10.0, masks)
+
+            if self.max_sprinkle_area > 0:
+                labels, areas = get_connected_components(
+                    mask_flat > self.mask_threshold
+                )
+                is_hole = (labels > 0) & (areas <= self.max_sprinkle_area)
+                is_hole = is_hole.reshape_as(masks)
+                # We fill holes with negative mask score (-10.0) to change them to background.
+                masks = torch.where(is_hole, self.mask_threshold - 10.0, masks)
+        except Exception as e:
+            # Skip the post-processing step if the CUDA kernel fails
+            warnings.warn(
+                f"{e}\n\nSkipping the post-processing step due to the error above. You can "
+                "still use SAM 2 and it's OK to ignore the error above, although some post-processing "
+                "functionality may be limited (which doesn't affect the results in most cases; see "
+                "https://github.com/facebookresearch/segment-anything-2/blob/main/INSTALL.md).",
+                category=UserWarning,
+                stacklevel=2,
+            )
+            masks = input_masks
+
+        masks = F.interpolate(masks, orig_hw, mode="bilinear", align_corners=False)
+        return masks
