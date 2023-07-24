@@ -7,4 +7,8 @@ model:
     _target_: sam2.modeling.backbones.image_encoder.ImageEncoder
     scalp: 1
     trunk:
-      _target_: sam2.modeling
+      _target_: sam2.modeling.backbones.hieradet.Hiera
+      embed_dim: 112
+      num_heads: 2
+    neck:
+      _target_: sam2.mod
