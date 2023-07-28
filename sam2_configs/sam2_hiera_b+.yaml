@@ -11,4 +11,6 @@ model:
       embed_dim: 112
       num_heads: 2
     neck:
-      _target_: sam2.mod
+      _target_: sam2.modeling.backbones.image_encoder.FpnNeck
+      position_encoding:
+        _target_: sam2.modeling.position_encoding.P
