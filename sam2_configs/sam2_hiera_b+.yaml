@@ -13,4 +13,9 @@ model:
     neck:
       _target_: sam2.modeling.backbones.image_encoder.FpnNeck
       position_encoding:
-        _target_: sam2.modeling.position_encoding.P
+        _target_: sam2.modeling.position_encoding.PositionEmbeddingSine
+        num_pos_feats: 256
+        normalize: true
+        scale: null
+        temperature: 10000
+    
