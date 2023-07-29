@@ -31,4 +31,7 @@ model:
       _target_: sam2.modeling.memory_attention.MemoryAttentionLayer
       activation: relu
       dim_feedforward: 2048
-      dropout: 
+      dropout: 0.1
+      pos_enc_at_attn: false
+      self_attention:
+        _target_: sam2.modeling.sam.transfo
