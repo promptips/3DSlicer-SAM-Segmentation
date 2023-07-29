@@ -24,4 +24,8 @@ model:
       fpn_interp_model: nearest
 
   memory_attention:
-    _target_: 
+    _target_: sam2.modeling.memory_attention.MemoryAttention
+    d_model: 256
+    pos_enc_at_input: true
+    layer:
+      _target_: sam2.modelin
