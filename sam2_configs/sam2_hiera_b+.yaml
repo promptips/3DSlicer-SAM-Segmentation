@@ -38,4 +38,9 @@ model:
         rope_theta: 10000.0
         feat_sizes: [32, 32]
         embedding_dim: 256
-    
+        num_heads: 1
+        downsample_rate: 1
+        dropout: 0.1
+      d_model: 256
+      pos_enc_at_cross_attn_keys: true
+   
