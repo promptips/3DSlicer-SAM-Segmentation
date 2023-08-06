@@ -55,3 +55,8 @@ model:
         dropout: 0.1
         kv_in_dim: 64
     num_layers: 4
+
+  memory_encoder:
+      _target_: sam2.modeling.memory_encoder.MemoryEncoder
+      out_dim: 64
+      position_encoding:
