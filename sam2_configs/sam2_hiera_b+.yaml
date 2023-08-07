@@ -62,4 +62,8 @@ model:
       position_encoding:
         _target_: sam2.modeling.position_encoding.PositionEmbeddingSine
         num_pos_feats: 64
-        normaliz
+        normalize: true
+        scale: null
+        temperature: 10000
+      mask_downsampler:
+        _target_: sam2.modeling.memory_en
