@@ -78,4 +78,9 @@ model:
           kernel_size: 7
           padding: 3
           layer_scale_init_value: 1e-6
-          use_dwco
+          use_dwconv: True  # depth-wise convs
+        num_layers: 2
+
+  num_maskmem: 7
+  image_size: 1024
+  # apply scaled sigmoid on
