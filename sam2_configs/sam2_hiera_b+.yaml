@@ -75,4 +75,7 @@ model:
         layer:
           _target_: sam2.modeling.memory_encoder.CXBlock
           dim: 256
-    
+          kernel_size: 7
+          padding: 3
+          layer_scale_init_value: 1e-6
+          use_dwco
