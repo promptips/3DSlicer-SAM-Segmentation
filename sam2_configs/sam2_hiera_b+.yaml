@@ -88,4 +88,7 @@ model:
   sigmoid_bias_for_mem_enc: -10.0
   use_mask_input_as_output_without_sam: true
   # Memory
-  directly_add_no_mem_embed:
+  directly_add_no_mem_embed: true
+  # use high-resolution feature map in the SAM mask decoder
+  use_high_res_features_in_sam: true
+  # o
