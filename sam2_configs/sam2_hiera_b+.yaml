@@ -94,4 +94,5 @@ model:
   # output 3 masks on the first click on initial conditioning frames
   multimask_output_in_sam: true
   # SAM heads
-  iou_pr
+  iou_prediction_use_sigmoid: True
+  # cross-attend to object pointers from other frames (based on SAM output
