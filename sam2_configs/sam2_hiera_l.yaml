@@ -11,4 +11,8 @@ model:
       embed_dim: 144
       num_heads: 2
       stages: [2, 6, 36, 4]
-      global_att_blocks: [
+      global_att_blocks: [23, 33, 43]
+      window_pos_embed_bkg_spatial_size: [7, 7]
+      window_spec: [8, 4, 16, 8]
+    neck:
+      _tar
