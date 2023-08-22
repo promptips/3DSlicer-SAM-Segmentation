@@ -15,4 +15,6 @@ model:
       window_pos_embed_bkg_spatial_size: [7, 7]
       window_spec: [8, 4, 16, 8]
     neck:
-      _tar
+      _target_: sam2.modeling.backbones.image_encoder.FpnNeck
+      position_encoding:
+        _target_: sam2.modeling.position_
