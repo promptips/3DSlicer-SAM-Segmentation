@@ -27,4 +27,7 @@ model:
       fpn_top_down_levels: [2, 3]  # output level 0 and 1 directly use the backbone features
       fpn_interp_model: nearest
 
-  memory_atten
+  memory_attention:
+    _target_: sam2.modeling.memory_attention.MemoryAttention
+    d_model: 256
+    pos_enc_at_input: true
