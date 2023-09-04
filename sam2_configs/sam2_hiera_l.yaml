@@ -22,4 +22,6 @@ model:
         normalize: true
         scale: null
         temperature: 10000
-      d_mod
+      d_model: 256
+      backbone_channel_list: [1152, 576, 288, 144]
+      fpn_top_down_levels: [2, 3]  # out
