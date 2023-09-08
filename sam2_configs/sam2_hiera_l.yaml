@@ -31,3 +31,7 @@ model:
     _target_: sam2.modeling.memory_attention.MemoryAttention
     d_model: 256
     pos_enc_at_input: true
+    layer:
+      _target_: sam2.modeling.memory_attention.MemoryAttentionLayer
+      activation: relu
+      dim_feedforwar
