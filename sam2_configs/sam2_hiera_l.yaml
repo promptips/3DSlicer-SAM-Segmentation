@@ -46,4 +46,7 @@ model:
         downsample_rate: 1
         dropout: 0.1
       d_model: 256
-      pos_
+      pos_enc_at_cross_attn_keys: true
+      pos_enc_at_cross_attn_queries: false
+      cross_attention:
+        _target_: sam2.modeling.sam.tra
