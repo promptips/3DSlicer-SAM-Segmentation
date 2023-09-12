@@ -38,4 +38,6 @@ model:
       dropout: 0.1
       pos_enc_at_attn: false
       self_attention:
-        _target_: sam2.mode
+        _target_: sam2.modeling.sam.transformer.RoPEAttention
+        rope_theta: 10000.0
+        feat_sizes: [32, 
