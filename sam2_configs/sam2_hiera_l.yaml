@@ -52,4 +52,9 @@ model:
         _target_: sam2.modeling.sam.transformer.RoPEAttention
         rope_theta: 10000.0
         feat_sizes: [32, 32]
-        rope_k_rep
+        rope_k_repeat: True
+        embedding_dim: 256
+        num_heads: 1
+        downsample_rate: 1
+        dropout: 0.1
+        kv_in_dim
