@@ -75,4 +75,6 @@ model:
         stride: 2
         padding: 1
       fuser:
- 
+        _target_: sam2.modeling.memory_encoder.Fuser
+        layer:
+          _target_: sam2.modeling.memory_encoder.C
