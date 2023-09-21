@@ -70,4 +70,9 @@ model:
         scale: null
         temperature: 10000
       mask_downsampler:
-        _target_: sam2.mod
+        _target_: sam2.modeling.memory_encoder.MaskDownSampler
+        kernel_size: 3
+        stride: 2
+        padding: 1
+      fuser:
+ 
