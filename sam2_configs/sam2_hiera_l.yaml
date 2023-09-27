@@ -87,4 +87,4 @@ model:
 
   num_maskmem: 7
   image_size: 1024
-  # ap
+  # apply scaled sigmoid on mask logits for memory encoder, and directly feed input mask as output 
