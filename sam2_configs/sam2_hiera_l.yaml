@@ -99,4 +99,6 @@ model:
   multimask_output_in_sam: true
   # SAM heads
   iou_prediction_use_sigmoid: True
-  # cross-attend to object poi
+  # cross-attend to object pointers from other frames (based on SAM output tokens) in the encoder
+  use_obj_ptrs_in_encoder: true
+  add_tpos_
