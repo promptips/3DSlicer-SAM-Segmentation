@@ -108,4 +108,8 @@ model:
   pred_obj_scores_mlp: true
   fixed_no_obj_ptr: true
   # multimask tracking settings
-  multimask_output_for_t
+  multimask_output_for_tracking: true
+  use_multimask_token_for_obj_ptr: true
+  multimask_min_pt_num: 0
+  multimask_max_pt_num: 1
+  use_mlp_
