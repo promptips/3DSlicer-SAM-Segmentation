@@ -25,4 +25,10 @@ REQUIRED_PACKAGES = [
     "torchvision>=0.18.1",
     "numpy>=1.24.4",
     "tqdm>=4.66.1",
-    "hydra-core>=
+    "hydra-core>=1.3.2",
+    "iopath>=0.1.10",
+    "pillow>=9.4.0",
+]
+
+EXTRA_PACKAGES = {
+    "demo": ["matplotlib>=3.9.1", "jupyter>=1.0.0", "openc
