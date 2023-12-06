@@ -31,4 +31,10 @@ REQUIRED_PACKAGES = [
 ]
 
 EXTRA_PACKAGES = {
-    "demo": ["matplotlib>=3.9.1", "jupyter>=1.0.0", "openc
+    "demo": ["matplotlib>=3.9.1", "jupyter>=1.0.0", "opencv-python>=4.7.0"],
+    "dev": ["black==24.2.0", "usort==1.0.2", "ufmt==2.0.0b2"],
+}
+
+
+def get_extensions():
+    s
