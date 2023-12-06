@@ -37,4 +37,8 @@ EXTRA_PACKAGES = {
 
 
 def get_extensions():
-    s
+    srcs = ["sam2/csrc/connected_components.cu"]
+    compile_args = {
+        "cxx": [],
+        "nvcc": [
+            "-DCUDA_HA
