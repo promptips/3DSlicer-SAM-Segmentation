@@ -19,4 +19,10 @@ LICENSE = "Apache 2.0"
 # Read the contents of README file
 
 
-# Required dependencie
+# Required dependencies
+REQUIRED_PACKAGES = [
+    "torch>=2.3.1",
+    "torchvision>=0.18.1",
+    "numpy>=1.24.4",
+    "tqdm>=4.66.1",
+    "hydra-core>=
