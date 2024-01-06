@@ -54,4 +54,8 @@ def get_extensions():
 
 # Setup configuration
 setup(
-  
+    name=NAME,
+    version=VERSION,
+    description=DESCRIPTION,
+    long_description="LONG_DESCRIPTION",
+    long_description_c
