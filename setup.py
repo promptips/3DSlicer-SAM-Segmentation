@@ -48,4 +48,10 @@ def get_extensions():
             "-allow-unsupported-compiler"
         ],
     }
-    ext_modules = [CUDAExtens
+    ext_modules = [CUDAExtension("sam2._C", srcs, extra_compile_args=compile_args)]
+    return ext_modules
+
+
+# Setup configuration
+setup(
+  
