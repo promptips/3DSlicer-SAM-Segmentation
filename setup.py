@@ -62,4 +62,7 @@ setup(
     url=URL,
     author=AUTHOR,
     author_email=AUTHOR_EMAIL,
-    license
+    license=LICENSE,
+    packages=find_packages(exclude="notebooks"),
+    install_requires=REQUIRED_PACKAGES,
+    extras_re
