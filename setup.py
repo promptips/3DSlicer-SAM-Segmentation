@@ -68,4 +68,5 @@ setup(
     extras_require=EXTRA_PACKAGES,
     python_requires=">=3.9.0",
     ext_modules=get_extensions(),
-    cmdclass={"build_ext"
+    cmdclass={"build_ext": BuildExtension.with_options(no_python_abi_suffix=True)},
+)
